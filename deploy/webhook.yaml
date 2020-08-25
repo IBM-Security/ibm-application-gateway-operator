@@ -1,0 +1,21 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: ibm-application-gateway-injector-webhook-cfg
+  labels:
+    app: ibm-application-gateway-injector
+webhooks:
+- name: ibm-application-gateway-injector.ibm.com
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: NoneOnDryRun
+  clientConfig:
+    service:
+      name: ibm-application-gateway-injector-webhook-svc
+      namespace: default
+      path: "/mutate"
+    caBundle: ${CABUNDLE} 
+  rules:
+  - operations: ["CREATE", "UPDATE", "DELETE"]
+    apiGroups: ["apps", ""]
+    apiVersions: ["v1"]
+    resources: ["deployments", "pods"]

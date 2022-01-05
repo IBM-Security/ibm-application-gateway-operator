@@ -1,3 +1,5 @@
+// Copyright contributors to the IBM Application Gateway Operator project
+
 module github.com/ibm-security/ibm-application-gateway-operator
 
 go 1.16

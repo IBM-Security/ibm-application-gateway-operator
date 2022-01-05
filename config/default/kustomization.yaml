@@ -1,3 +1,5 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
 # Adds namespace to all resources.
 namespace: ibm-application-gateway-operator-system
 

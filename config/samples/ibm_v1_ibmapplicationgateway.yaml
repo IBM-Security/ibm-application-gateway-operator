@@ -1,3 +1,5 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
 apiVersion: ibm.com/v1
 kind: IBMApplicationGateway
 metadata:

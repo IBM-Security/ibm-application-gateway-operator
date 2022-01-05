@@ -1,3 +1,5 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
 # Build the manager binary
 FROM golang:1.17 as builder
 

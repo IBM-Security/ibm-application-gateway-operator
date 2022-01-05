@@ -1,3 +1,5 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
 FROM scratch
 
 # Core bundle labels.

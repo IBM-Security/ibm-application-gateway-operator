@@ -1,3 +1,5 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
 # permissions for end users to view ibmapplicationgateways.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

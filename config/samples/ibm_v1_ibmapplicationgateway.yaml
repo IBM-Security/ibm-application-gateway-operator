@@ -1,0 +1,79 @@
+apiVersion: ibm.com/v1
+kind: IBMApplicationGateway
+metadata:
+  name: iag-instance3
+spec:
+  replicas: 1
+  deployment:
+    serviceAccountName: iag
+    lang: en
+    image: sec-iag-team-docker-local.artifactory.swg-devops.com/iag:latest 
+    imagePullPolicy: Always
+    imagePullSecrets: 
+      - name: regcred
+    readinessProbe:
+      initialDelaySeconds: 7
+      periodSeconds: 8
+      failureThreshold: 2
+      successThreshold: 4
+      timeoutSeconds: 5
+    livenessProbe:
+      initialDelaySeconds: 8
+      periodSeconds: 9
+      failureThreshold: 6
+      successThreshold: 7
+      timeoutSeconds: 1
+    image: sec-iag-team-docker-local.artifactory.swg-devops.com/iag:latest
+    imagePullPolicy: IfNotPresent 
+  configuration:
+    - type: configmap
+      name: test-config
+      dataKey: config
+    - type: oidc_registration
+      discoveryEndpoint: https://isam.mmfa.ibm.com/mga/sps/oauth/oauth20/metadata/test
+      postData:
+        - name: redirect_uris
+          values:
+            - https://isam.mmfa.ibm.com/pkmsoidc
+        - name: client_name
+          value: OperatorTest
+        - name: enforce_pkce
+          value: "false"
+        - name: all_users_entitled
+          value: "true"
+        - name: consent_action
+          value: never_prompt
+      secret: oidc-client
+    - type: web
+      url: https://raw.github.ibm.com/IAG/iag-config/master/test/sample1.yaml
+      headers:
+        - type: secret
+          name: Authorization
+          value: githubsecret
+          secretKey: value
+    - type: literal 
+      value: |
+        version: "19.12"
+
+        server:
+          local_applications:
+            cred_viewer:
+              path_segment: creds
+              enable_html: true
+
+        identity:
+          eai:
+            auth_challenge_redirect: /eai/login.html
+            triggers:
+            - /eai/authenticate.cgi
+
+        policies:
+          authorization:
+            - name: any_user
+              paths:
+                - "/eai/login.html*"
+                - "/eai/login2.html*"
+                - "/eai/authenticate.cgi*"
+              action: "permit"
+              rule: "()"
+

@@ -1,0 +1,20 @@
+# permissions for end users to view ibmapplicationgateways.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ibmapplicationgateway-viewer-role
+rules:
+- apiGroups:
+  - ibm.com
+  resources:
+  - ibmapplicationgateways
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ibm.com
+  resources:
+  - ibmapplicationgateways/status
+  verbs:
+  - get

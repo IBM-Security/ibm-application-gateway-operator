@@ -1,0 +1,24 @@
+# permissions for end users to edit ibmapplicationgateways.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ibmapplicationgateway-editor-role
+rules:
+- apiGroups:
+  - ibm.com
+  resources:
+  - ibmapplicationgateways
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ibm.com
+  resources:
+  - ibmapplicationgateways/status
+  verbs:
+  - get

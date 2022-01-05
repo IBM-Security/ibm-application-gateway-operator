@@ -1,0 +1,49 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: ibm-application-gateway-operator.v0000.0000.0000
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: IBMApplicationGateway is the Schema for the ibmapplicationgateways
+        API
+      displayName: IBMApplication Gateway
+      kind: IBMApplicationGateway
+      name: ibmapplicationgateways.ibm.com
+      version: v1
+  description: TBD
+  displayName: IBM Application Gateway
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - IBM
+  - Security
+  links:
+  - name: Build
+    url: https://build.domain
+  maintainers:
+  - email: isamdev@au1.ibm.com
+    name: IBM Application Gateway Development Team
+  maturity: alpha
+  provider:
+    name: IBM
+  version: 0.0.0

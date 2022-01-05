@@ -24,7 +24,7 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -37,6 +37,9 @@ type IBMApplicationGatewayReconciler struct {
 	Scheme   *runtime.Scheme
 	recorder record.EventRecorder
 }
+
+// Logger
+var log = logf.Log.WithName("controller_ibmapplicationgateway")
 
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/status,verbs=get;update;patch
@@ -51,8 +54,11 @@ type IBMApplicationGatewayReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
-func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
+	_ = logf.FromContext(ctx)
+
+        reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger.Info("Reconciling IBMApplicationGateway")
 
 	// your logic here
 

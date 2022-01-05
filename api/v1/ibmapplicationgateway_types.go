@@ -37,6 +37,8 @@ type IBMApplicationGatewayDeployment struct {
 	ImagePullSecrets   []IBMApplicationGatewaySecrets `json:"imagePullSecrets"`
 	ServiceAccountName string                         `json:"serviceAccountName"`
 	Lang               string                         `json:"lang"`
+
+        // +optional
 	ConfigMapSuffix    string                         `json:"generatedConfigmapSuffix"`
 	ReadinessProbe     IBMApplicationGatewayProbe     `json:"readinessProbe"`
 	LivenessProbe      IBMApplicationGatewayProbe     `json:"livenessProbe"`
@@ -47,7 +49,9 @@ type IBMApplicationGatewaySecrets struct {
 }
 
 type IBMApplicationGatewayProbe struct {
+        // +optional
 	Command          string `json:"command"`
+
 	InitDelay        int32  `json:"initialDelaySeconds"`
 	Period           int32  `json:"periodSeconds"`
 	FailureThreshold int32  `json:"failureThreshold"`
@@ -57,13 +61,29 @@ type IBMApplicationGatewayProbe struct {
 
 type IBMApplicationGatewayConfiguration struct {
 	Type              string                          `json:"type"`
+
+        // +optional
 	Name              string                          `json:"name"`
+
+        // +optional
 	DataKey           string                          `json:"dataKey"`
+
+        // +optional
 	Url               string                          `json:"url"`
+
+        // +optional
 	Headers           []IBMApplicationGatewayHeaders  `json:"headers"`
+
+        // +optional
 	Value             string                          `json:"value"`
+
+        // +optional
 	DiscoveryEndpoint string                          `json:"discoveryEndpoint"`
+
+        // +optional
 	Secret            string                          `json:"secret"`
+
+        // +optional
 	PostData          []IBMApplicationGatewayPostData `json:"postData"`
 }
 
@@ -75,8 +95,12 @@ type IBMApplicationGatewayHeaders struct {
 }
 
 type IBMApplicationGatewayPostData struct {
+        // +optional
 	Value  string   `json:"value"`
+
 	Name   string   `json:"name"`
+
+        // +optional
 	Values []string `json:"values"`
 }
 

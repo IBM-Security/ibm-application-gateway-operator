@@ -3,13 +3,13 @@
 apiVersion: ibm.com/v1
 kind: IBMApplicationGateway
 metadata:
-  name: iag-instance3
+  name: iag-instance
 spec:
   replicas: 1
   deployment:
     serviceAccountName: iag
     lang: en
-    image: sec-iag-team-docker-local.artifactory.swg-devops.com/iag:latest 
+    image: ibmcom/ibm-application-gateway:21.12
     imagePullPolicy: Always
     imagePullSecrets: 
       - name: regcred
@@ -25,8 +25,6 @@ spec:
       failureThreshold: 6
       successThreshold: 7
       timeoutSeconds: 1
-    image: sec-iag-team-docker-local.artifactory.swg-devops.com/iag:latest
-    imagePullPolicy: IfNotPresent 
   configuration:
     - type: configmap
       name: test-config
@@ -47,7 +45,7 @@ spec:
           value: never_prompt
       secret: oidc-client
     - type: web
-      url: https://raw.github.ibm.com/IAG/iag-config/master/test/sample1.yaml
+      url: https://raw.github.com/ibm-security/iag-config/master/test/sample1.yaml
       headers:
         - type: secret
           name: Authorization
@@ -55,7 +53,7 @@ spec:
           secretKey: value
     - type: literal 
       value: |
-        version: "19.12"
+        version: "21.12"
 
         server:
           local_applications:
@@ -64,18 +62,8 @@ spec:
               enable_html: true
 
         identity:
-          eai:
-            auth_challenge_redirect: /eai/login.html
-            triggers:
-            - /eai/authenticate.cgi
-
-        policies:
-          authorization:
-            - name: any_user
-              paths:
-                - "/eai/login.html*"
-                - "/eai/login2.html*"
-                - "/eai/authenticate.cgi*"
-              action: "permit"
-              rule: "()"
+          oidc:
+            discovery_endpoint: "https://iag-dev.ibmcloudsecurity.com/oidc/endpoint/default/.well-known/openid-configuration"
+            client_id: 1cbfe647-9e5f-4d99-8e05-8ed1c862eb47
+            client_secret: uPP8rM7N0e
 

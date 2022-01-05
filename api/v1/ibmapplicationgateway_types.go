@@ -11,21 +11,33 @@ import (
 
 // IBMApplicationGatewaySpec defines the desired state of IBMApplicationGateway
 type IBMApplicationGatewaySpec struct {
+        // +optional
 	Replicas      int32                                `json:"replicas"`
+
 	Deployment    IBMApplicationGatewayDeployment      `json:"deployment"`
 	Configuration []IBMApplicationGatewayConfiguration `json:"configuration"`
 }
 
 type IBMApplicationGatewayDeployment struct {
 	ImageLocation      string                         `json:"image"`
+
+        // +optional
 	ImagePullPolicy    string                         `json:"imagePullPolicy"`
+        // +optional
 	ImagePullSecrets   []IBMApplicationGatewaySecrets `json:"imagePullSecrets"`
+
+        // +optional
 	ServiceAccountName string                         `json:"serviceAccountName"`
+
+        // +optional
 	Lang               string                         `json:"lang"`
 
         // +optional
 	ConfigMapSuffix    string                         `json:"generatedConfigmapSuffix"`
+
+        // +optional
 	ReadinessProbe     IBMApplicationGatewayProbe     `json:"readinessProbe"`
+        // +optional
 	LivenessProbe      IBMApplicationGatewayProbe     `json:"livenessProbe"`
 }
 

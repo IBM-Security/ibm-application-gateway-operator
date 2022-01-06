@@ -5,7 +5,6 @@
 package v1
 
 import (
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -103,11 +102,7 @@ type IBMApplicationGatewayPostData struct {
 
 // IBMApplicationGatewayStatus defines the observed state of IBMApplicationGateway
 type IBMApplicationGatewayStatus struct {
-	Replicas int32      `json:"replicas"`
-	PodNames []string   `json:"podNames"`
-	PodSpec  v1.PodSpec `json:"pod_spec"`
-	Version  string     `json:"version"`
-	Status   bool       `json:"status"`
+	Status bool `json:"status"`
 }
 
 //+kubebuilder:object:root=true

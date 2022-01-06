@@ -6,102 +6,189 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // IBMApplicationGatewaySpec defines the desired state of IBMApplicationGateway
 type IBMApplicationGatewaySpec struct {
-        // +optional
+	// Replicas is the number of desired replicas.
+	// This is a pointer to distinguish between explicit zero and unspecified.
+	// Defaults to 1.
+	// +optional
 	Replicas      int32                                `json:"replicas"`
 
+	// Specification of the desired behavior of the Deployment.
 	Deployment    IBMApplicationGatewayDeployment      `json:"deployment"`
+
+	// The configuration information associated with the deployed container.
 	Configuration []IBMApplicationGatewayConfiguration `json:"configuration"`
 }
 
 type IBMApplicationGatewayDeployment struct {
+
+	// Docker image name.
+	// More info: https://kubernetes.io/docs/concepts/containers/images
 	ImageLocation      string                         `json:"image"`
 
-        // +optional
+	// Image pull policy.
+	// One of Always, Never, IfNotPresent.
+	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+	// Cannot be updated.
+	// More info: https://kubernetes.io/docs/concepts/containers/images#updating-images
+	// +optional
 	ImagePullPolicy    string                         `json:"imagePullPolicy"`
-        // +optional
-	ImagePullSecrets   []IBMApplicationGatewaySecrets `json:"imagePullSecrets"`
 
-        // +optional
+	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
+	// If specified, these secrets will be passed to individual puller implementations for them to use. For example,
+	// in the case of docker, only DockerConfig type secrets are honored.
+	// More info: https://kubernetes.io/docs/concepts/containers/images#specifying-imagepullsecrets-on-a-pod
+	// +optional
+	ImagePullSecrets   []corev1.LocalObjectReference  `json:"imagePullSecrets"`
+
+	// ServiceAccountName is the name of the ServiceAccount to use to run this pod.
+	// More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+	// +optional
 	ServiceAccountName string                         `json:"serviceAccountName"`
 
-        // +optional
+	// The language in which log messages from the container will be generated.
+	// +kubebuilder:default=C
+	// +optional
 	Lang               string                         `json:"lang"`
 
-        // +optional
+	// A suffix which will be appended to the ConfigMap's which are created by
+	// the operator.
+	// +optional
 	ConfigMapSuffix    string                         `json:"generatedConfigmapSuffix"`
 
-        // +optional
+	// Periodic probe of container service readiness.
+	// Container will be removed from service endpoints if the probe fails.
+	// Cannot be updated.
+	// +optional
 	ReadinessProbe     IBMApplicationGatewayProbe     `json:"readinessProbe"`
-        // +optional
+
+	// Periodic probe of container liveness.
+	// Container will be restarted if the probe fails.
+	// Cannot be updated.
+	// +optional
 	LivenessProbe      IBMApplicationGatewayProbe     `json:"livenessProbe"`
 }
 
-type IBMApplicationGatewaySecrets struct {
-	Name string `json:"name"`
-}
-
 type IBMApplicationGatewayProbe struct {
-        // +optional
+	// Command is the command line to execute inside the container, the working directory for the
+	// command  is root ('/') in the container's filesystem. The command is simply exec'd, it is
+	// not run inside a shell, so traditional shell instructions ('|', etc) won't work. To use
+	// a shell, you need to explicitly call out to that shell.
+	// Exit status of 0 is treated as live/healthy and non-zero is unhealthy.
+	// +optional
 	Command          string `json:"command"`
 
+	// Number of seconds after the container has started before liveness probes are initiated.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	// +optional
 	InitDelay        int32  `json:"initialDelaySeconds"`
+
+	// How often (in seconds) to perform the probe.
+	// Default to 10 seconds. Minimum value is 1.
+	// +optional
 	Period           int32  `json:"periodSeconds"`
+
+	// Minimum consecutive failures for the probe to be considered failed after having succeeded.
+	// Defaults to 3. Minimum value is 1.
+	// +optional
 	FailureThreshold int32  `json:"failureThreshold"`
+
+	// Minimum consecutive successes for the probe to be considered successful after having failed.
+	// Defaults to 1. Must be 1 for liveness and startup. Minimum value is 1.
+	// +optional
 	SuccessThreshold int32  `json:"successThreshold"`
+
+	// Number of seconds after which the probe times out.
+	// Defaults to 1 second. Minimum value is 1.
+	// +optional
 	TimeoutSeconds   int32  `json:"timeoutSeconds"`
 }
 
 type IBMApplicationGatewayConfiguration struct {
+	// The type of configuration data which is being provided.  Valid types
+	// include: configmap, oidc_registration, web, literal.
 	Type              string                          `json:"type"`
 
-        // +optional
+	// The name of the configuration map to be used, when the type is configmap.
+	// +optional
 	Name              string                          `json:"name"`
 
-        // +optional
+	// The name of the ConfigMap key which contains the configuration data.  
+	// Used when the type is configmap.
+	// +optional
 	DataKey           string                          `json:"dataKey"`
 
-        // +optional
+	// The URL which is used to retrieve the configuration data.  Used when the
+	// type is web.
+	// +optional
 	Url               string                          `json:"url"`
 
-        // +optional
+	// Any headers which are associated with the request which is sent to 
+	// retrieve configuration data.  Used when type is web.
+	// +optional
 	Headers           []IBMApplicationGatewayHeaders  `json:"headers"`
 
-        // +optional
+	// The literal configuration data.  Used when type is literal.
+	// +optional
 	Value             string                          `json:"value"`
 
-        // +optional
+	// The OIDC discovery endpoint.  Used when type is oidc_registration.
+	// +optional
 	DiscoveryEndpoint string                          `json:"discoveryEndpoint"`
 
-        // +optional
+	// The name of the secret which contains the credential information.  Used
+	// when type is oidc_registration.
+	// +optional
 	Secret            string                          `json:"secret"`
 
-        // +optional
+	// The POST data which is submitted as a part of the OIDC registration
+	// flow.  Used when type is oidc_registration.
+	// +optional
 	PostData          []IBMApplicationGatewayPostData `json:"postData"`
 }
 
 type IBMApplicationGatewayHeaders struct {
+	// The type of data which is provided for the header.  Valid values are
+	// either secret or literal.
 	Type      string `json:"type"`
+
+	// The value of the header which is being added.  If a literal header type 
+	// is provided this field contains the actual value of the header.  If a 
+	// secret header type is provided this field contains the name of the
+	// secret.
 	Value     string `json:"value"`
+
+	// The name of the header which is being generated.
 	Name      string `json:"name"`
+
+	// The name of the field within the secret which contains the value of
+	// the header.
+	// +optional
 	SecretKey string `json:"secretKey"`
 }
 
 type IBMApplicationGatewayPostData struct {
-        // +optional
+	// The value of the post data.
+	// +optional
 	Value  string   `json:"value"`
 
+	// The name of the post data.
 	Name   string   `json:"name"`
 
-        // +optional
+	// An array of strings which will be used as the value of the post data.
+	// +optional
 	Values []string `json:"values"`
 }
 
 // IBMApplicationGatewayStatus defines the observed state of IBMApplicationGateway
 type IBMApplicationGatewayStatus struct {
+	// A boolean which is used to signify whether the resource has been
+	// successfully created.
+	// +kubebuilder:default=true
 	Status bool `json:"status"`
 }
 

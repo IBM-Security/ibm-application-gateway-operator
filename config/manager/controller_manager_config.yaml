@@ -10,4 +10,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: 3be91ec7.com
+  resourceName: ibm-application-gateway-operator-lock

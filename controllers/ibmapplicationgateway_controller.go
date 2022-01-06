@@ -90,6 +90,7 @@ type IBMApplicationGatewayReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	record.EventRecorder
+        Leader string
 }
 
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways,verbs=get;list;watch;create;update;patch;delete
@@ -281,7 +282,7 @@ func handleConfigMapChange(r *IBMApplicationGatewayReconciler, instance *ibmv1.I
     // To help improve performance we ignore our operator 'leader' configmap as
     // this is updated frequently and we know that it does not contain any
     // IAG configuration data.
-	if request.Name == "3be91ec7.com" {
+	if request.Name == r.Leader {
 		return nil
 	}
 
@@ -300,7 +301,7 @@ func handleConfigMapChange(r *IBMApplicationGatewayReconciler, instance *ibmv1.I
 				mapName := entry.Name 
 
 				if mapName == request.Name {
-                    reqLogger.Info("Handle configmap change : updating")
+				    reqLogger.Info("Handle configmap change : updating")
 
 					iagNamespaceName := request.NamespacedName
 				    iagNamespaceName.Name = inst.Name

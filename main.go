@@ -53,13 +53,15 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+        leader := "ibm-application-gateway-operator-lock"
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "3be91ec7.com",
+		LeaderElectionID:       leader,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -70,6 +72,7 @@ func main() {
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		EventRecorder: mgr.GetEventRecorderFor("ibm-application-gateway-operator"),
+                Leader:        leader,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IBMApplicationGateway")
 		os.Exit(1)

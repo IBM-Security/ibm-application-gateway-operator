@@ -8,7 +8,7 @@ spec:
   replicas: 1
   deployment:
     serviceAccountName: iag
-    lang: en
+    lang: C
     image: ibmcom/ibm-application-gateway:21.12
     imagePullPolicy: Always
     imagePullSecrets: 

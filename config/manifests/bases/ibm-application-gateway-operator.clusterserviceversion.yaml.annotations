@@ -1,0 +1,26 @@
+      resources:
+      - kind: IBMApplicationGateway
+        name: ''
+        version: v1
+      statusDescriptors:
+        - description: A boolean which is used to signify whether the resource has been successfully created.
+          displayName: Status
+          path: status
+          x-descriptors:
+            - 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch'
+      specDescriptors:
+      - description: "Replicas is the number of desired replicas.  Defaults to 1."
+        displayName: Replicas
+        path: replicas
+        x-descriptors:
+          - 'urn:alm:descriptor:com.tectonic.ui:number'
+      - description: "Specification of the desired behavior of the Deployment."
+        displayName: Deployment
+        path: deployment
+        x-descriptors:
+          - 'urn:alm:descriptor:com.tectonic.ui:advanced'
+      - description: "The configuration information associated with the deployed container."
+        displayName: Configuration
+        path: configuration
+        x-descriptors:
+          - 'urn:alm:descriptor:com.tectonic.ui:advanced'

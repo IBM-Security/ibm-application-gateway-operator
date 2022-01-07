@@ -1,0 +1,69 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+apiVersion: ibm.com/v1
+kind: IBMApplicationGateway
+metadata:
+  name: iag-instance
+spec:
+  replicas: 1
+  deployment:
+    serviceAccountName: iag
+    lang: C
+    image: ibmcom/ibm-application-gateway:21.12
+    imagePullPolicy: Always
+    imagePullSecrets: 
+      - name: regcred
+    readinessProbe:
+      initialDelaySeconds: 7
+      periodSeconds: 8
+      failureThreshold: 2
+      successThreshold: 4
+      timeoutSeconds: 5
+    livenessProbe:
+      initialDelaySeconds: 8
+      periodSeconds: 9
+      failureThreshold: 6
+      successThreshold: 7
+      timeoutSeconds: 1
+  configuration:
+    - type: configmap
+      name: test-config
+      dataKey: config
+    - type: oidc_registration
+      discoveryEndpoint: https://isam.mmfa.ibm.com/mga/sps/oauth/oauth20/metadata/test
+      postData:
+        - name: redirect_uris
+          values:
+            - https://isam.mmfa.ibm.com/pkmsoidc
+        - name: client_name
+          value: OperatorTest
+        - name: enforce_pkce
+          value: "false"
+        - name: all_users_entitled
+          value: "true"
+        - name: consent_action
+          value: never_prompt
+      secret: oidc-client
+    - type: web
+      url: https://raw.github.com/ibm-security/iag-config/master/test/sample1.yaml
+      headers:
+        - type: secret
+          name: Authorization
+          value: githubsecret
+          secretKey: value
+    - type: literal 
+      value: |
+        version: "21.12"
+
+        server:
+          local_applications:
+            cred_viewer:
+              path_segment: creds
+              enable_html: true
+
+        identity:
+          oidc:
+            discovery_endpoint: "https://iag-dev.ibmcloudsecurity.com/oidc/endpoint/default/.well-known/openid-configuration"
+            client_id: 1cbfe647-9e5f-4d99-8e05-8ed1c862eb47
+            client_secret: uPP8rM7N0e
+

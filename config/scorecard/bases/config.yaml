@@ -1,0 +1,9 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+apiVersion: scorecard.operatorframework.io/v1alpha3
+kind: Configuration
+metadata:
+  name: config
+stages:
+- parallel: true
+  tests: []

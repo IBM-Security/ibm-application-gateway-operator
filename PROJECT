@@ -1,0 +1,24 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+domain: com
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: ibm-application-gateway-operator
+repo: github.com/ibm-security/ibm-application-gateway-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: com
+  group: ibm
+  kind: IBMApplicationGateway
+  path: github.com/ibm-security/ibm-application-gateway-operator/api/v1
+  version: v1
+  webhooks:
+    defaulting: true
+    webhookVersion: v1
+version: "3"

@@ -1,0 +1,7 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+resources:
+- certificate.yaml
+
+configurations:
+- kustomizeconfig.yaml

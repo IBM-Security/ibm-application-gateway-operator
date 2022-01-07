@@ -1,0 +1,6 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- ibm_v1_ibmapplicationgateway.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

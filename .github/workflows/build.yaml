@@ -1,0 +1,144 @@
+##############################################################################
+# Copyright contributors to the IBM Application Gateway Operator project
+
+# This workflow will be triggered whenever a push occurs (e.g. when a pull 
+# request is merged).  The action will build and publish the IAG
+# operator.  The docker images will be published to docker hub.  A release
+# build is created whenever a new tag is created.  The name of the tag should
+# be of the format v<year>.<month>.<fix> (with no leading 0's), for example:
+# v21.7.0.  The tag is also used as the tag for the generated docker image, 
+# without the leading 'v'.
+
+name: ibm-application-gateway-operator-publish
+
+# Controls when the workflow will run
+on: 
+  push:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# The jobs for the workflow.
+jobs:
+
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the 
+    # job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can 
+      # access it
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # Set up the GO environment.
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: "1.17"
+
+      # Set up the GO cache.
+      - name: Use go cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Download and install the operator-sdk.  These instructions have
+      # been copied from the official GO installation guide.
+      - name: Set up OperatorSDK
+        id: fetch-operator-sdk
+        run: |
+          # Download the operator-sdk.
+          export ARCH=amd64
+          export OS=$(uname | awk '{print tolower($0)}')
+          export RELEASE_VERSION=$( curl -ksS \
+            https://api.github.com/repos/operator-framework/operator-sdk/releases/latest | 
+                  jq -r '.tag_name' )
+
+          export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}
+
+          curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+
+          # Verify that the operator has been downloaded OK.
+          gpg --keyserver keyserver.ubuntu.com --recv-keys 052996E2A20B5C7E
+
+          curl -LO ${OPERATOR_SDK_DL_URL}/checksums.txt
+          curl -LO ${OPERATOR_SDK_DL_URL}/checksums.txt.asc
+          gpg -u "Operator SDK (release) <cncf-operator-sdk@cncf.io>" \
+              --verify checksums.txt.asc
+
+          grep operator-sdk_${OS}_${ARCH} checksums.txt | sha256sum -c -
+
+          # Install the operator-sdk.
+          chmod +x operator-sdk_${OS}_${ARCH} 
+          mkdir -p ${HOME}/.local/bin
+          mv operator-sdk_${OS}_${ARCH} ${HOME}/.local/bin/operator-sdk
+
+      # Perform a docker login to docker hub.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERIO_USER    }}
+          password: ${{ secrets.DOCKERIO_API_KEY }}
+
+      # Perform the build.
+      - name: Perform the build.
+        run: |
+          export IMAGE_TAG_BASE=ibmcom/ibm-application-gateway-operator
+
+          case $GITHUB_REF in 
+            refs/tags/v*)
+              export VERSION=`echo $GITHUB_REF | sed "s|refs/tags/v||g"`
+              export DO_PUSH=1
+              ;;
+            *)
+              export VERSION=development
+
+              if [ $GITHUB_REF = "refs/heads/master" ] ; then
+                export DO_PUSH=1
+              else
+                export DO_PUSH=0
+              fi
+              ;;
+          esac
+
+          echo "make build....."
+          make build
+
+          echo "make docker-build....."
+          make docker-build
+
+          echo "make bundle....."
+          make bundle
+
+          echo "make bundle-build....."
+          make bundle-build
+
+          if [ $DO_PUSH -eq 1 ] ; then
+            echo "make docker-push....."
+            make docker-push
+
+            echo "make bundle-push....."
+            make bundle-push
+          fi
+
+          echo "make bundle-zip....."
+          make bundle-zip
+
+      # Publish the release, if the release has been tagged.
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            bundle.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+

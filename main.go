@@ -18,6 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	ibmv1 "github.com/ibm-security/ibm-application-gateway-operator/api/v1"
 	"github.com/ibm-security/ibm-application-gateway-operator/controllers"
@@ -53,7 +54,7 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-        leader := "ibm-application-gateway-operator-lock"
+	leader := "ibm-application-gateway-operator-lock"
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -72,7 +73,7 @@ func main() {
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		EventRecorder: mgr.GetEventRecorderFor("ibm-application-gateway-operator"),
-                Leader:        leader,
+		Leader:        leader,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IBMApplicationGateway")
 		os.Exit(1)
@@ -87,6 +88,14 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
+
+	// Register the Webhook which is used to monitor resources.
+	mgr.GetWebhookServer().Register("/mutate-v1-iag",
+		&webhook.Admission{
+			Handler: &controllers.IBMApplicationGatewayWebhook{
+                            Client: mgr.GetClient(),
+                        },
+		})
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

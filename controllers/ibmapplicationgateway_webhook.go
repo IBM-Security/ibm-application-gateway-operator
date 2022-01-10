@@ -93,14 +93,14 @@ type IBMApplicationGatewayWebhook struct {
 func mutationRequired(whsvr *IBMApplicationGatewayWebhook, ignoredList []string, metadata *metav1.ObjectMeta, 
 	                  isUpdate bool, ns string, appName string, isPod bool) (bool, []string) {
 
-	log.Info("IBMApplicationGatewayWebhook: mutationRequired")
+	log.V(2).Info("IBMApplicationGatewayWebhook: mutationRequired")
 
 	var annotationChanges []string
 
 	// skip special kubernete system namespaces
 	for _, namespace := range ignoredList {
 		if metadata.Namespace == namespace {
-			log.Info(fmt.Sprintf("Skip mutation for %v for it's in special namespace:%v", metadata.Name, metadata.Namespace))
+			log.V(2).Info(fmt.Sprintf("Skip mutation for %v for it's in special namespace:%v", metadata.Name, metadata.Namespace))
 			return false, nil
 		}
 	}
@@ -188,7 +188,7 @@ func mutationRequired(whsvr *IBMApplicationGatewayWebhook, ignoredList []string,
 		}
 	}
 
-	log.Info(fmt.Sprintf("Mutation policy for %v/%v: required:%v", metadata.Namespace, metadata.Name, required))
+	log.V(1).Info(fmt.Sprintf("Mutation policy for %v/%v: required:%v", metadata.Namespace, metadata.Name, required))
 	return required, annotationChanges
 }
 
@@ -197,7 +197,7 @@ func mutationRequired(whsvr *IBMApplicationGatewayWebhook, ignoredList []string,
  */
 func validateAnnotations(annots map[string]string) (error, []IAGConfigElement) {
 
-	log.Info("IBMApplicationGatewayWebhook: validateAnnotations")
+	log.V(2).Info("IBMApplicationGatewayWebhook: validateAnnotations")
 
 	// Image is required
 	if annots[imageAnnot] == "" {
@@ -217,7 +217,7 @@ func validateAnnotations(annots map[string]string) (error, []IAGConfigElement) {
  */
 func getConfigElements(annots map[string]string) ([]IAGConfigElement, error) {
 
-	log.Info("IBMApplicationGatewayWebhook: getConfigElements")
+	log.V(2).Info("IBMApplicationGatewayWebhook: getConfigElements")
 
 	var err error
 
@@ -397,7 +397,7 @@ func getConfigElements(annots map[string]string) ([]IAGConfigElement, error) {
  */
 func createIAGConfig(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.AdmissionRequest, configElements []IAGConfigElement, update bool, cmName string) (string, error) {
 
-	log.Info("IBMApplicationGatewayWebhook: createIAGConfig")
+	log.V(2).Info("IBMApplicationGatewayWebhook: createIAGConfig")
 
 	// Sort via the order fields
 	sort.SliceStable(configElements, func(first, second int) bool {
@@ -413,7 +413,7 @@ func createIAGConfig(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admis
  */
 func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGConfigElement, ns string, req *admissionv1.AdmissionRequest, update bool, cmName string) (string, error) {
 
-	log.Info("IBMApplicationGatewayWebhook : mergeIAGConfig")
+	log.V(2).Info("IBMApplicationGatewayWebhook : mergeIAGConfig")
 
 	master := make(map[string]interface {})
 	var err error
@@ -427,7 +427,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 				// Handle configmap entry
 				master, err = handleIAGConfigMap(whsvr, element.Name, element.DataKey, ns, master)
 				if err != nil {
-					log.Info("Error encountered attempting to merge a config map : " + element.Name)
+					log.Error(err, "Error encountered attempting to merge a config map : " + element.Name)
 					return "", err
 				}
 			case "web":
@@ -435,7 +435,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 				master, err = handleWebEntryMerge(whsvr.Client, types.NamespacedName{Name: "dummy", Namespace: ns}, 
 					                              element.Url, element.Headers, master)
 				if err != nil {
-					log.Info("Error encountered attempting to merge a web config : " + element.Url)
+					log.Error(err, "Error encountered attempting to merge a web config : " + element.Url)
 					return "", err
 				}
 
@@ -458,7 +458,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 		// Handle the registration and merge
 		master, err = handleOidcEntryMerge(whsvr.Client, iagOidcReg, ns, master)
 		if err != nil {
-			log.Info("Error encountered attempting to merge OIDC registration : " + oidcReg.Name)
+			log.Error(err, "Error encountered attempting to merge OIDC registration : " + oidcReg.Name)
 			return "", err
 		}
 	}
@@ -493,7 +493,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
  */
 func handleIAGConfigMap(whsvr *IBMApplicationGatewayWebhook, configMap string, dataKey string, ns string, masterConfig map[string]interface {}) (map[string]interface {}, error) {
 	
-	log.Info("IBMApplicationGatewayWebhook : handleIAGConfigMap")
+	log.V(2).Info("IBMApplicationGatewayWebhook : handleIAGConfigMap")
 
 	// Fetch the config map
 	configMapFound := &corev1.ConfigMap{}
@@ -520,7 +520,7 @@ func handleIAGConfigMap(whsvr *IBMApplicationGatewayWebhook, configMap string, d
  */
 func addIAGService(whsvr *IBMApplicationGatewayWebhook, annots map[string]string, req *admissionv1.AdmissionRequest) (string, error) {
 
-	log.Info("IBMApplicationGatewayWebhook : addIAGService")
+	log.V(2).Info("IBMApplicationGatewayWebhook : addIAGService")
 
 	service := newService(annots, req)
 
@@ -539,7 +539,7 @@ func addIAGService(whsvr *IBMApplicationGatewayWebhook, annots map[string]string
  */
 func updateIAGService(whsvr *IBMApplicationGatewayWebhook, annots map[string]string, req *admissionv1.AdmissionRequest) (string, error) {
 
-	log.Info("IBMApplicationGatewayWebhook : updateIAGService")
+	log.V(2).Info("IBMApplicationGatewayWebhook : updateIAGService")
 
 	var sName string
 	var err error
@@ -606,7 +606,7 @@ func getWebhookConfigMapName(req *admissionv1.AdmissionRequest) (string) {
  */
 func newService(annots map[string]string, req *admissionv1.AdmissionRequest) *corev1.Service {
 
-	log.Info("IBMApplicationGatewayWebhook : newService")
+	log.V(2).Info("IBMApplicationGatewayWebhook : newService")
 	
 	name := getServiceName(req)
 
@@ -647,7 +647,7 @@ func newService(annots map[string]string, req *admissionv1.AdmissionRequest) *co
 func addIAGContainer(currVolumes []corev1.Volume, annots map[string]string, containers []corev1.Container, 
 	basePath string, cmName string, req *admissionv1.AdmissionRequest, update bool, configChanged bool) (patch []patchOperation, err error) {
 
-	log.Info("IBMApplicationGatewayWebhook : addIAGContainer")
+	log.V(2).Info("IBMApplicationGatewayWebhook : addIAGContainer")
 
 	imageLocation := annots[imageAnnot]
 	if imageLocation == "" {
@@ -841,7 +841,7 @@ func addIAGContainer(currVolumes []corev1.Volume, annots map[string]string, cont
  */
 func addAnnotations(currAnnots map[string]string, newAnnots map[string]string) (patch []patchOperation) {
 
-	log.Info("IBMApplicationGatewayWebhook : addAnnotations")
+	log.V(2).Info("IBMApplicationGatewayWebhook : addAnnotations")
 
 	oper := "replace"
 	if currAnnots == nil {
@@ -873,7 +873,7 @@ func addAnnotations(currAnnots map[string]string, newAnnots map[string]string) (
 func createObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume, annots map[string]string, containers []corev1.Container, 
 	               basePath string, req *admissionv1.AdmissionRequest) ([]byte, error) {
 
-	log.Info("IBMApplicationGatewayWebhook : createObjects")
+	log.V(2).Info("IBMApplicationGatewayWebhook : createObjects")
 
 	var patch []patchOperation
 
@@ -931,7 +931,7 @@ func createObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume,
 func updateObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume, annots map[string]string, containers []corev1.Container, 
 	               basePath string, req *admissionv1.AdmissionRequest, annotationChanges []string) ([]byte, error) {
 
-	log.Info("IBMApplicationGatewayWebhook : updateObjects")
+	log.V(2).Info("IBMApplicationGatewayWebhook : updateObjects")
 
 	var patch []patchOperation
 
@@ -1006,7 +1006,7 @@ func updateObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume,
  */
 func deleteService(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.AdmissionRequest, serviceName string) error {
 
-	log.Info("IBMApplicationGatewayWebhook: deleteService")
+	log.V(2).Info("IBMApplicationGatewayWebhook: deleteService")
 
 	// Check if this Service already exists
 	foundSvc := &corev1.Service{}
@@ -1020,7 +1020,7 @@ func deleteService(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admissi
         }
 	} else { 
 		if errors.IsNotFound(err) {
-			log.Info("Service did not exist")
+			log.V(2).Info("Service did not exist")
 			// No op. Does not exist so ignore
 		} else {
 			log.Error(err, "Encountered an error while attempting to delete the service")
@@ -1036,7 +1036,7 @@ func deleteService(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admissi
  */
 func deleteConfigMap(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.AdmissionRequest, configMapName string) error {
 	
-	log.Info("IBMApplicationGatewayWebhook: deleteConfigMap")
+	log.V(2).Info("IBMApplicationGatewayWebhook: deleteConfigMap")
 
 	// Check if this Service already exists
 	foundCM := &corev1.ConfigMap{}
@@ -1050,7 +1050,7 @@ func deleteConfigMap(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admis
         }
 	} else { 
 		if errors.IsNotFound(err) {
-			log.Info("Config Map did not exist")
+			log.V(2).Info("Config Map did not exist")
 			// No op. Does not exist so ignore
 		} else {
 			log.Error(err, "Encountered an error while attempting to delete the config map")
@@ -1066,7 +1066,7 @@ func deleteConfigMap(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admis
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateCreate(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: mutateCreate")
+	log.V(2).Info("IBMApplicationGatewayWebhook: mutateCreate")
 
 	switch req.Kind.Kind {
 		case "Pod":
@@ -1085,7 +1085,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreate(req *admissionv1.Admissi
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateCreateDeployment(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: mutateCreateDeployment")
+	log.V(2).Info("IBMApplicationGatewayWebhook: mutateCreateDeployment")
 
 	var depl appsv1.Deployment
 	if err := json.Unmarshal(req.Object.Raw, &depl); err != nil {
@@ -1099,19 +1099,19 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreateDeployment(req *admission
 
 	// For a deployment we don't want to handle the generated pods
 	if req.Name == "" {
-		log.Info(fmt.Sprintf("Skipping mutation for %s/%s due to no deployment name", depl.Namespace, depl.Name))
+		log.V(2).Info(fmt.Sprintf("Skipping mutation for %s/%s due to no deployment name", depl.Namespace, depl.Name))
 		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
 
-	log.Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+	log.V(2).Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, depl.Name, req.UID, req.Operation, req.UserInfo))
 
 	// determine whether to perform mutation
 	mutReq, _ := mutationRequired(whsvr, ignoredNamespaces, &depl.ObjectMeta, false, req.Namespace, req.Name, false)
 	if !mutReq {
-		log.Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", depl.Namespace, depl.Name))
+		log.V(2).Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", depl.Namespace, depl.Name))
 		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
@@ -1126,7 +1126,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreateDeployment(req *admission
 		}
 	}
 
-	log.Info("AdmissionResponse: patch=" + string(patchBytes))
+	log.V(0).Info("AdmissionResponse: patch=" + string(patchBytes))
 	return &admissionv1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,
@@ -1142,7 +1142,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreateDeployment(req *admission
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateCreatePod(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: MutateCreatePod")
+	log.V(2).Info("IBMApplicationGatewayWebhook: MutateCreatePod")
 
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
@@ -1156,19 +1156,19 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreatePod(req *admissionv1.Admi
 
 	// For a deployment we don't want to handle the generated pods
 	if req.Name == "" {
-		log.Info(fmt.Sprintf("Skipping mutation for %s/%s due to no pod name", pod.Namespace, pod.Name))
+		log.V(2).Info(fmt.Sprintf("Skipping mutation for %s/%s due to no pod name", pod.Namespace, pod.Name))
 		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
 
-	log.Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+	log.V(2).Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, pod.Name, req.UID, req.Operation, req.UserInfo))
 
 	// determine whether to perform mutation
 	mutReq, _ := mutationRequired(whsvr, ignoredNamespaces, &pod.ObjectMeta, false, req.Namespace, req.Name, true)
 	if !mutReq {
-		log.Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", pod.Namespace, pod.Name))
+		log.V(2).Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", pod.Namespace, pod.Name))
 		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
@@ -1183,7 +1183,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreatePod(req *admissionv1.Admi
 		}
 	}
 
-	log.Info("AdmissionResponse: patch=" + string(patchBytes))
+	log.V(0).Info("AdmissionResponse: patch=" + string(patchBytes))
 	return &admissionv1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,
@@ -1199,7 +1199,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreatePod(req *admissionv1.Admi
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateUpdate(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: MutateUpdate")
+	log.V(2).Info("IBMApplicationGatewayWebhook: MutateUpdate")
 
 	switch req.Kind.Kind {
 		case "Pod":
@@ -1218,7 +1218,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdate(req *admissionv1.Admissi
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateUpdateDeployment(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: MutateUpdateDeployment")
+	log.V(2).Info("IBMApplicationGatewayWebhook: MutateUpdateDeployment")
 
 	var depl appsv1.Deployment
 	if err := json.Unmarshal(req.Object.Raw, &depl); err != nil {
@@ -1230,19 +1230,19 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdateDeployment(req *admission
 		}
 	}
 
-	log.Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+	log.V(2).Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, depl.Name, req.UID, req.Operation, req.UserInfo))
 
 	// determine whether to perform mutation
 	mutReq, annotationChanges := mutationRequired(whsvr, ignoredNamespaces, &depl.ObjectMeta, true, req.Namespace, req.Name, false)
 	if !mutReq {
-		log.Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", depl.Namespace, depl.Name))
+		log.V(2).Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", depl.Namespace, depl.Name))
 		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
 
-	log.Info(fmt.Sprintf("Mutate required for changes : %v", annotationChanges))
+	log.V(0).Info(fmt.Sprintf("Mutate required for changes : %v", annotationChanges))
 
 	patchBytes, err := updateObjects(whsvr, depl.Spec.Template.Spec.Volumes, depl.Annotations, depl.Spec.Template.Spec.Containers, "/spec/template", req, annotationChanges)
 	if err != nil {
@@ -1253,7 +1253,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdateDeployment(req *admission
 		}
 	}
 
-	log.Info("AdmissionResponse: patch=" + string(patchBytes))
+	log.V(0).Info("AdmissionResponse: patch=" + string(patchBytes))
 	return &admissionv1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,
@@ -1269,7 +1269,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdateDeployment(req *admission
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateUpdatePod(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: MutateUpdatePod")
+	log.V(2).Info("IBMApplicationGatewayWebhook: MutateUpdatePod")
 
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
@@ -1281,19 +1281,19 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdatePod(req *admissionv1.Admi
 		}
 	}
 
-	log.Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+	log.V(2).Info(fmt.Sprintf("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, pod.Name, req.UID, req.Operation, req.UserInfo))
 
 	// determine whether to perform mutation
 	mutReq, annotationChanges := mutationRequired(whsvr, ignoredNamespaces, &pod.ObjectMeta, true, req.Namespace, req.Name, true)
 	if !mutReq {
-		log.Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", pod.Namespace, pod.Name))
+		log.V(2).Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", pod.Namespace, pod.Name))
 		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
 
-	log.Info(fmt.Sprintf("Mutate required for changes : %v", annotationChanges))
+	log.V(0).Info(fmt.Sprintf("Mutate required for changes : %v", annotationChanges))
 
 	patchBytes, err := updateObjects(whsvr, pod.Spec.Volumes, pod.Annotations, pod.Spec.Containers, "", req, annotationChanges)
 	if err != nil {
@@ -1304,7 +1304,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdatePod(req *admissionv1.Admi
 		}
 	}
 
-	log.Info("AdmissionResponse: patch=" + string(patchBytes))
+	log.V(0).Info("AdmissionResponse: patch=" + string(patchBytes))
 	return &admissionv1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,
@@ -1320,7 +1320,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdatePod(req *admissionv1.Admi
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateDelete(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: mutateDelete")
+	log.V(2).Info("IBMApplicationGatewayWebhook: mutateDelete")
 
 	switch req.Kind.Kind {
 		case "Pod":
@@ -1339,7 +1339,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDelete(req *admissionv1.Admissi
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteDeployment(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: mutateDeleteDeployment")
+	log.V(2).Info("IBMApplicationGatewayWebhook: mutateDeleteDeployment")
 
 	var depl appsv1.Deployment
 	if err := json.Unmarshal(req.OldObject.Raw, &depl); err != nil {
@@ -1354,7 +1354,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteDeployment(req *admission
 	// determine whether to perform mutation
 	mutReq, _ := mutationRequired(whsvr, ignoredNamespaces, &depl.ObjectMeta, false, req.Namespace, req.Name, true)
 	if !mutReq {
-		log.Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", depl.Namespace, depl.Name))
+		log.V(2).Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", depl.Namespace, depl.Name))
 		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
@@ -1370,7 +1370,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteDeployment(req *admission
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateDeletePod(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: mutateDeletePod")
+	log.V(2).Info("IBMApplicationGatewayWebhook: mutateDeletePod")
 
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.OldObject.Raw, &pod); err != nil {
@@ -1385,7 +1385,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeletePod(req *admissionv1.Admi
 	// determine whether to perform mutation
 	mutReq, _ := mutationRequired(whsvr, ignoredNamespaces, &pod.ObjectMeta, false, req.Namespace, req.Name, true)
 	if !mutReq {
-		log.Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", pod.Namespace, pod.Name))
+		log.V(2).Info(fmt.Sprintf("Skipping mutation for %s/%s due to policy check", pod.Namespace, pod.Name))
 		return &admissionv1.AdmissionResponse{
 			Allowed: true,
 		}
@@ -1401,7 +1401,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeletePod(req *admissionv1.Admi
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteCommon(req *admissionv1.AdmissionRequest, annots map[string]string) *admissionv1.AdmissionResponse {	
 
-	log.Info("IBMApplicationGatewayWebhook: mutateDeleteCommon")
+	log.V(2).Info("IBMApplicationGatewayWebhook: mutateDeleteCommon")
 
 	sName := annots[servAnnot]
 	cmName := annots[cmAnnot]
@@ -1419,7 +1419,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteCommon(req *admissionv1.A
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutate(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	
-	log.Info("IBMApplicationGatewayWebhook: mutate")
+	log.V(2).Info("IBMApplicationGatewayWebhook: mutate")
 
 	operation := req.Operation
 
@@ -1447,7 +1447,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutate(req *admissionv1.AdmissionRequ
 
 func (a *IBMApplicationGatewayWebhook) Handle(
 			ctx context.Context, req admission.Request) admission.Response {
-	log.Info("IBMApplicationGatewayWebhook: Handle")
+	log.V(2).Info("IBMApplicationGatewayWebhook: Handle")
 
 	/*
 	 * Process the request, determining if mutation is required.
@@ -1473,7 +1473,7 @@ func (a *IBMApplicationGatewayWebhook) Handle(
  */
 
 func (a *IBMApplicationGatewayWebhook) InjectDecoder(d *admission.Decoder) error {
-	log.Info("IBMApplicationGatewayWebhook: InjectDecoder")
+	log.V(2).Info("IBMApplicationGatewayWebhook: InjectDecoder")
 
 	a.decoder = d
 

@@ -93,6 +93,7 @@ type IBMApplicationGatewayReconciler struct {
         Leader string
 }
 
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/finalizers,verbs=update
@@ -164,7 +165,7 @@ func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, request
 				_, errD = createNewDeployment(r, instance, request, cmVersion, cmName)
 				if errD != nil {
 					reqLogger.Error(errD, "Failed to create the new deployment.")
-					return manageError(r, instance, err)
+					return manageError(r, instance, errD)
 				}
 
 				return ctrl.Result{}, nil

@@ -1,0 +1,34 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+  labels:
+    app: test
+    name: test
+  annotations:
+    ibm-application-gateway.security.ibm.com/env.LANG: en
+    ibm-application-gateway.security.ibm.com/configuration.test.type: configmap
+    ibm-application-gateway.security.ibm.com/configuration.test.name: test-config
+    ibm-application-gateway.security.ibm.com/configuration.test.dataKey: config
+    ibm-application-gateway.security.ibm.com/configuration.test.order: "1"
+    ibm-application-gateway.security.ibm.com/deployment.image: ibmcom/ibm-application-gateway:21.12.0
+    ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
+    ibm-application-gateway.security.ibm.com/service.port: "30441"
+spec:
+  selector:
+    matchLabels:
+      app: test
+      name: test
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: test
+        name: test
+    spec:
+      containers:
+      - name: test
+        image: ibmcom/ibm-application-gateway-demo-resource-server:21.12.0
+        imagePullPolicy: IfNotPresent

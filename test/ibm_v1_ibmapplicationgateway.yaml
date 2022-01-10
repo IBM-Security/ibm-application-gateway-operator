@@ -1,0 +1,30 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+apiVersion: ibm.com/v1
+kind: IBMApplicationGateway
+metadata:
+  name: iag-instance
+spec:
+  replicas: 1
+  deployment:
+    image: ibmcom/ibm-application-gateway:21.12
+  configuration:
+#      - type: configmap
+#        name: test-config
+#        dataKey: config
+    - type: literal 
+      value: |
+        version: "21.12"
+
+        server:
+          local_applications:
+            cred_viewer:
+              path_segment: creds
+              enable_html: true
+
+        identity:
+          oidc:
+            discovery_endpoint: "https://test.ibmcloudsecurity.com/oidc/endpoint/default/.well-known/openid-configuration"
+            client_id: 1cbfe647-9e5f-4d99-8e05-8ec1c862eb48
+            client_secret: uPP8rM8N0e
+

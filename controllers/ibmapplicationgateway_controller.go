@@ -93,6 +93,7 @@ type IBMApplicationGatewayReconciler struct {
         Leader string
 }
 
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/finalizers,verbs=update
@@ -164,7 +165,7 @@ func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, request
 				_, errD = createNewDeployment(r, instance, request, cmVersion, cmName)
 				if errD != nil {
 					reqLogger.Error(errD, "Failed to create the new deployment.")
-					return manageError(r, instance, err)
+					return manageError(r, instance, errD)
 				}
 
 				return ctrl.Result{}, nil
@@ -541,7 +542,7 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
 		return nil, fmt.Errorf("Configuration web entry is missing the Url.")
 	}
 
-	log.Info("Retrieving config from " + webUrl)
+	log.V(1).Info("Retrieving config from " + webUrl)
 
 	// Get the yaml from the given url
 	client := &http.Client{}
@@ -560,7 +561,7 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
 
 		switch header.Type {
 			case "literal":
-				log.Info("Adding literal header : " + header.Name)
+				log.V(1).Info("Adding literal header : " + header.Name)
 				req.Header.Add(header.Name, header.Value)
 			case "secret":
 				// Retrieve the header value from the secret
@@ -578,7 +579,7 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
 					hdrValue := string(secret.Data[header.SecretKey])
 
 					if hdrValue != "" {
-						log.Info("Adding secret header : " + header.Name)
+						log.V(1).Info("Adding secret header : " + header.Name)
 						req.Header.Add(header.Name, hdrValue)
 					} else {
 						return nil, fmt.Errorf("The authorization secret : " + header.Value + " does not have the required key : " + header.SecretKey)
@@ -606,7 +607,7 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
 				return nil, err
 			} else {
 				webData := string(body)
-				log.Info("Found web config " + webData)
+				log.V(1).Info("Found web config " + webData)
 
 				master, err = handleYamlDataMerge(webData, master)
 				if err != nil {
@@ -670,17 +671,17 @@ func convertInterfaceKeysToString(inputMap map[interface {}]interface {}) map[st
  * a generic arg that can be casted.
  */
 func validateStringKeysFromString(inputMap map[string]interface {}) map[string]interface{} {
-	log.Info("convertMaster")
+	log.V(1).Info("convertMaster")
 
 	retVal := make(map[string]interface {})
 
 	for key, value := range inputMap {
 		switch value2 := value.(type) {
 			case map[string]interface {}:
-				log.Info("String : " + key)
+				log.V(1).Info("String : " + key)
 				retVal[key] = validateStringKeysFromString(value2)
 	        case map[interface{}]interface{}:
-	        	log.Info("interface : " + key)
+	        	log.V(1).Info("interface : " + key)
 	            retVal[fmt.Sprint(key)] = validateStringKeysFromInterface(value2)
 	        case []interface {}:
 	        	// Handle array of interfaces
@@ -711,7 +712,7 @@ func validateStringKeysFromString(inputMap map[string]interface {}) map[string]i
  * a generic arg that can be casted.
  */
 func validateStringKeysFromInterface(inputMap map[interface {}]interface {}) map[string]interface{} {
-	log.Info("convertInterfaceToString")
+	log.V(1).Info("convertInterfaceToString")
 
 	retVal := make(map[string]interface {})
 

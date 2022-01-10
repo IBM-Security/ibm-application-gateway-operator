@@ -1,0 +1,20 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+# This YAML can be used to add the IAG operator catalog to the 
+# OpenShift environment.  The '--catalog-img--' text will need to be replaced 
+# with the name of the catalog image.
+
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ibm-application-gateway-catalog
+  namespace: openshift-marketplace
+spec:
+  displayName: IBM Application Gateway
+  publisher: IBM
+  sourceType: grpc
+  image: --catalog-img--
+  updateStrategy:
+    registryPoll:
+      interval: 10m
+

@@ -74,7 +74,7 @@ type patchOperation struct {
 
 /*****************************************************************************/
 
-// +kubebuilder:webhook:path=/mutate-v1-iag,mutating=true,failurePolicy=fail,sideEffects=None,groups=apps;core,resources=deployments;pods,verbs=create;update;delete,versions=v1,name=iag.kb.io,admissionReviewVersions={v1}
+// +kubebuilder:webhook:path=/mutate-v1-iag,mutating=true,failurePolicy=fail,sideEffects=None,groups=apps,resources=deployments,verbs=create;update;delete,versions=v1,name=iag.kb.io,admissionReviewVersions={v1}
 
 /*****************************************************************************/
 

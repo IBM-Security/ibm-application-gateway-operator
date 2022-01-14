@@ -76,14 +76,14 @@ The sidecar deployment of IBM Application Gateway is suitable when:
 
 ### Custom Resource Model
 
-The [custom resource](#custom-resource-model) deployment model involves creating an IBM Application Gateway custom resource. The operator will handle the creation and lifecycle management of the IBM Application Gateway instance. 
+The [custom resource](#custom-resource-model-1) deployment model involves creating an IBM Application Gateway custom resource. The operator will handle the creation and lifecycle management of the IBM Application Gateway instance. 
 
 ![Custom Resource Model](docs/images/operator-cr.png)
 
 The custom resource deployment of IBM Application Gateway is suitable when:
 
 * The IBM Application Gateway configuration needs to be split across multiple sources
-* There are multiple instances of the IBM Application Gateway required. (The operator will manage all instances with minimal assistance from the Kubernetes administrator)
+* There are multiple instances of the IBM Application Gateway required.  The operator will manage all instances with minimal assistance from the Kubernetes administrator.
 
 ## Installation
 
@@ -141,7 +141,7 @@ At this point the Operator Lifecycle Manager has been installed into the Kuberne
 
 ### Dynamic Client Registration
 
-The IBM Application Gateway can be configured to act as an OIDC relying party for authentication. A client must be registered with the OpenID provider (OIDC OP) such that it can be referenced in the configuration. For example:
+The IBM Application Gateway can be configured to act as an OIDC relying party for authentication. A client must be registered with the OpenID provider (OP) such that it can be referenced in the configuration. For example:
 
 ```yaml
 version: "21.12"
@@ -152,17 +152,17 @@ version: "21.12"
       discovery_endpoint: https://www.test.com/mga/sps/oauth/oauth20/metadata/oidc_def
 ``` 
 
-The OIDC dynamic client registration negates the need for the client to be preregistered in the OIDC OP. Instead, during the merging of the configuration sources the operator will make an HTTP call to the OIDC OP to dynamically register the new client.
+The OIDC dynamic client registration negates the need for the client to be preregistered with the OIDC provider. Instead, during the merging of the configuration sources the operator will make an HTTP call to the OIDC provider to dynamically register the new client.
 
 #### OIDC Registration Configuration Source
 
-A single OIDC registration definition may be specified in the custom resource, or sidecar annotations. Providing more than one defition will result in an error. The operator requires the following properties to be specified:
+A single OIDC registration definition may be specified in the custom resource, or sidecar annotations. Providing more than one definition will result in an error. The operator requires the following properties to be specified:
 
-* discoveryEndpoint. This is the endpoint that can be used to discover the registration endpoint and token endpoint of the OIDC OP.
-* postData. Specifies any POST data that is required to be sent as part of the registration request.
-* secret. Specifies a Kubernetes secret that may contain authorization data for the registration request. This is also the location where the resulting client ID and secret are stored upon successful registration.
+* Discovery Endpoint: This is the endpoint that can be used to discover the registration endpoint and token endpoint of the OIDC provider.
+* POST Data: Specifies any POST data that is required to be sent as part of the registration request.
+* Secret: Specifies a Kubernetes secret that may contain authorization data for the registration request. This is also the location where the resulting client ID and secret are stored upon successful registration.
 
-The following custom resource definition:
+The following custom resource definition illustrates how to specify the OIDC registration definition:
 
 ```yaml
 apiVersion: ibm.com/v1
@@ -180,11 +180,11 @@ spec:
       secret: oidc-client
 ```
 
-will result in the operator:
+This definition will result in the operator:
 
 1. Calling the discoveryEndpoint to retrieve the registration endpoint
-2. Possibly making an HTTP POST request to the token endpoint to retrieve an authorization token for the registration. The need for this step is dependent on the type of authorization data that has been provided in the Kubernetes secret. For more details on this see [Secret](#secret).
-3. Making an HTTP POST request to the registration endpoint to register a new client, passing the specified POST data.
+2. Possibly making a HTTP POST request to the token endpoint to retrieve an authorization token for the registration. The need for this step is dependent on the type of authorization data that has been provided in the Kubernetes secret. For more details on this see [Secret](#secret).
+3. Making a HTTP POST request to the registration endpoint to register a new client, passing the specified POST data.
 4. Storing the client ID and secret from the response as data entries in the Kubernetes secret named "oidc-client" using the keys "client\_id" and "client\_secret".
 5. Merging a new OIDC identity configuration entry into the IBM Application Gateway configuration.
 
@@ -200,30 +200,30 @@ identity:
 
 ##### Discovery Endpoint
 
-As stated above, the discoveryEndpoint is a required property when configuring dynamic client registration. The entry will be used for 2 purposes:
+As stated above, the discovery endpoint is a required property when configuring dynamic client registration. The entry will be used for 2 purposes:
 
-1. It will be added to the resulting OIDC identity provider configuration as the "discovery\_endpoint".
+1. It will be added to the resulting OIDC provider configuration as the "discovery\_endpoint".
 2. It will be used by the operator to retrieve the necessary registration endpoint and possibly the token endpoint if required.
 
-As such the OIDC OP must support discovery and also dynamic client registration. The response from the GET call to the discovery endpoint must include:
+As such the OIDC provider must support discovery and dynamic client registration. The response from the GET call to the discovery endpoint must include:
 
 * registration\_endpoint
 * token\_endpoint (if an authorization token is required for client registration)
 
 ##### POST Data
 
-The request to an OIDC OP to dynamically register a new client will require certain properties to be provided in the form of POST data. The properties are defined as part of the [OpenID Connect Dynamic Client Registration specification](https://openid.net/specs/openid-connect-registration-1_0.html). Each individual OIDC OP implementation may also include their own list of additional properties that may be set.
+The request to an OIDC provider to dynamically register a new client will require certain properties to be provided in the form of POST data. The properties are defined as part of the [OpenID Connect Dynamic Client Registration specification](https://openid.net/specs/openid-connect-registration-1_0.html). Each individual OIDC provider implementation may also include their own list of additional properties that may be set.
 
 IBM Security Verify properties are defined in the [IBM Knowledge Center](https://www.ibm.com/support/knowledgecenter/en/SSCT62/com.ibm.iamservice.doc/tasks/t_dynamic_kc.html).
 
-When using the IBMApplicationGateway customer resource the POST data properties may be added in one of 2 ways:
+When using the IBMApplicationGateway custom resource the POST data properties may be added in one of 2 ways:
 
 1. As a single string value using the "value" YAML key; or
 2. As an array of string values using the "values" YAML key
 
 If an entry contains both "value" and "values" the single entry "value" will take precedence and the "values" entry will be ignored.
 
-For example the following definition:
+The following YAML extract illustrates how to set the POST data:
 
 ```yaml
 postData:
@@ -241,7 +241,7 @@ postData:
     value: never_prompt
 ``` 
 
-will result in the following POST data:
+This definition will result in the following POST data being sent to the client registration endpoint:
 
 ```
 {
@@ -253,11 +253,11 @@ will result in the following POST data:
 }
 ```
 
-> Note: While the primary use of the postData entry is to provide data for the registration request the `scopes` entry (if specified) will also be used in the request to the token endpoint if an authorization token needs to be retrieved."
+> Note: While the primary use of the POST data entry is to provide data for the registration request the `scopes` entry (if specified) will also be used in the request to the token endpoint if an authorization token needs to be retrieved.
 
 ##### Secret
 
-The OIDC registration configuration source requires a valid and existing Kubernetes secret. This secret has a dual purpose:
+The OIDC registration definition requires a valid and existing Kubernetes secret. This secret has a dual purpose:
 
 1. The operator will retrieve the authorization data used to authorize the OIDC dynamic client registration.
 2. Once the new client has been registered, the new client ID and secret will be stored in the secret and referenced by the IBM Application Gateway configuration.
@@ -266,12 +266,12 @@ The authorization data can be specified in 4 different ways. The following table
 
 Precedence | Secret Data      | Encoding | Description | When to use |
 ---------- | --------------   | -------- | ----------- | ----------- |
-1 | baUsername, baPassword | base64 | Client registration will be attempted with a BA authorization header. | The OIDC OP supports basic authentication to authorize the client registration. |
+1 | baUsername, baPassword | base64 | Client registration will be attempted with a BA authorization header. | The OIDC provider supports basic authentication to authorize the client registration. |
 2 | initialAccessToken | base64 | Client registration will be attempted with a bearer token authorization header. | A token exists that will not expire or will be managed manually. |
-3 | tokenRetrievalClientId, tokenRetrievalClientSecret | base64 | The ID and secret will be used to firstly authorize a token retrieve request to the OIDC OP. This token will subsequently be used to authorize the client registration. | The authorization token can not be stored long term but an intermediate client ID and secret exist that can be used to retrieve a token on demand. |
-4 | None | None | Client registration will be attempted without an authorization header. | OIDC OP does not require authorization for client registration. |
+3 | tokenRetrievalClientId, tokenRetrievalClientSecret | base64 | The ID and secret will be used to firstly authorize a token retrieve request to the OIDC provider. This token will subsequently be used to authorize the client registration. | The authorization token cannot be stored long term but an intermediate client ID and secret exists that can be used to retrieve a token on demand. |
+4 | None | None | Client registration will be attempted without an authorization header. | The OIDC provider does not require authorization for client registration. |
 
-For example, the following YAML shows a Kubernetes secret that contains the tokenRetrievalClientId, tokenRetrievalClientSecret and the created client\_id and client\_secret that were returned by the OIDC OP.
+For example, the following YAML shows a Kubernetes secret that contains the tokenRetrievalClientId, tokenRetrievalClientSecret and the created client\_id and client\_secret that were returned by the OIDC provider.
 
 ```yaml
 apiVersion: v1
@@ -284,7 +284,7 @@ data:
   client_secret: klj345a9HeLH234JKjjk
 ```
 
-Note: If the tokenRetrievalClientId and tokenRetrievalClientSecret are specified the OIDC OP discovery request must return the token endpoint. This is the case whereby the client registration will result in three HTTP calls:
+If the tokenRetrievalClientId and tokenRetrievalClientSecret are specified the OIDC provider discovery request must return the token endpoint. In this case the client registration will result in three HTTP calls:
 
 1. GET discovery\_endpoint (No authorization).
 2. POST token\_endpoint (BA using tokenRetrievalClientId and tokenRetrievalClientSecret).
@@ -292,20 +292,20 @@ Note: If the tokenRetrievalClientId and tokenRetrievalClientSecret are specified
 
 #### OIDC Client Lifecycle Management
 
-The IBM Application Gateway operator will call the OIDC OP to register a new client if the OIDC registration definition is provided. Once the client has been registered the ID and secret are stored in a Kubernetes secret. At this point the operator and IBM Application Gateway instance will continue to use the registered client even if it expires or is deleted from the OIDC OP. Note that the operator will not register a new client if the specified secret already contains a client\_id and client\_secret.
+The IBM Application Gateway operator will call the OIDC provider to register a new client if an OIDC registration definition is provided. Once the client has been registered the ID and secret are stored in a Kubernetes secret. At this point the operator and IBM Application Gateway instance will continue to use the registered client even if it expires or is deleted from the OIDC provider. Note that the operator will not register a new client if the specified secret already contains a client\_id and client\_secret field.
 
 The administrator is responsible for any further lifecycle management of the client.
 
 If a new client registration is required the administrator should:
 
 1. Update the secret to remove the client\_id and client\_secret.
-2. Trigger an update of the IBM Application Gateway custom resource.
+2. Trigger an update of the IBM Application Gateway definition.
 
 The operator will then be invoked and should register a new client with the OIDC OP and update the IBM Application Gateway instance identity provider.
 
 #### Trust OIDC OP Certificate
 
-The IBM Application Gateway operator will load its own CA certificates by default in order to validate trust with the OIDC OP. There may be scenarios whereby the OIDC OP certificate cannot be trusted by default. In this case there are two methods that can alleviate the problem.
+The IBM Application Gateway operator will load its own CA certificates by default in order to validate trust with the OIDC provider. There may be scenarios whereby the OIDC provider certificate cannot be trusted by default. In this case there are two methods that can alleviate the problem.
 
 1. For a non production scenario where the trust validation is not required a flag named insecureTLS can be set in the Kubernetes secret data that will disable trust validation. This is the same secret that has been specified in the OIDC registration definition. Setting the flag to true will disable trust validation. 
 
@@ -324,7 +324,7 @@ data:
   insecureTLS: dHJ1ZQ==
 ```
 
-2. The OIDC OP certificate can be added to the Kubernetes operator service account data and it will then be added to the trusted certificates when the call to the OIDC OP is made. The certificate should be extracted from the OIDC OP and added to the operator service account token secret as a new entry "service-ca.crt".
+2. The OIDC provider certificate can be added to the Kubernetes operator service account data and it will then be added to the trusted certificates when the call to the OIDC provider is made. The certificate should be extracted from the OIDC provider and added to the operator service account token secret as a new entry "service-ca.crt".
 
 For example. If the operator is running with the service account "ibm-application-gateway-operator" there will be a service account token secret named "ibm-application-gateway-operator-token-\<random\>" that exists in Kubernetes. Add the base 64 encoded certificate to this secret.
 
@@ -340,15 +340,15 @@ data:
 
 An IBM Application Gateway instance deployed on Kubernetes is a complex deployment. In particular the configuration can be defined externally in one or more locations and changes to this configuration may require all instances to be reloaded for the changes to take effect. The existing Kubernetes deployment controller does not have any knowledge of how an IBM Application Gateway instance should behave when the configuration changes. 
 
-In the custom resource model the operator will monitor for the creation of resources of the kind "IBMApplicationGateway" and use these custom resources to manage the lifecycle of the IBM Application Gateway instances.
+In the custom resource model the operator will monitor for the updates to resources of the kind "IBMApplicationGateway" and use these custom resources to manage the lifecycle of the IBM Application Gateway instances.
 
 #### Custom Object
 
-A custom object, of the kind "IBMApplicationGateway", is used to by the operator manage the lifecycle of the IBM Application Gateway instances.  Each of these custom objects, once created in Kubernetes, will result in an IBM Application Gateway deployment being created by the operator.
+A custom object, of the kind "IBMApplicationGateway", is used by the operator to manage the lifecycle of the IBM Application Gateway instances.  Each of these custom objects, once created in Kubernetes, will result in an IBM Application Gateway deployment being created by the operator.
 
 > Warning: Prior to creating the custom object in Kubernetes ensure that any referenced secrets, configmaps or external web sources exist.
 
-The following YAML file (iag-instance.yaml) contains an example custom object data
+The following YAML file (iag-instance.yaml) contains an example custom resource:
 
 ```yaml
 apiVersion: ibm.com/v1
@@ -378,11 +378,11 @@ spec:
 
 The YAML file must include:
 
-1. The kind set as IBMApplicationGateway. This will result in the IBM Application Gateway operator being notified of any changes to this object.
+1. The kind set as `IBMApplicationGateway`. This will result in the IBM Application Gateway operator being notified of any changes to this object.
 2. The image. This is the location and version of the IBM Application Gateway image used to create new pods. If the image location requires authorization details for access these can be added as a Kubernetes secret and the secret reference added here using the imagePullSecrets field. 
 3. The configuration for the IBM Application Gateway instances, which may be defined in one or more different locations. 
 
-The following command can be used to create the custom object from this file:
+The following command can be used to create the custom resource from this file:
 
 ```shell
 kubectl apply -f iag-instance.yaml
@@ -401,9 +401,9 @@ metadata:
 kubectl apply -f iag_service_account.yaml
 ```
 
-The IBM Application Gateway operator provides a way for the configuration to be defined in more than one location. The multiple locations will be merged into a single config map that will be used by the running IBM Application Gateway instance.
+The IBM Application Gateway operator provides a mechanism for the configuration to be defined in more than one location. The configuration from the multiple locations will be merged into a single config map that will be used by the running IBM Application Gateway instance.
 
-The configuration can be defined in one or more of:
+The configuration can be defined with one or more of:
 
 * A literal definition in the custom object. Use the YAML configuration type entry "literal".
 * A config map reference in the custom object. Use the YAML configuration type entry "configmap".
@@ -447,8 +447,6 @@ spec:
 
 If a part or all of the IBM Application Gateway configuration is to be stored in an existing config map the config map must exist prior to creating the custom object. If it does not exist the creation of the IBM Application Gateway instance will fail.
 
-The following definition:
-
 ```yaml
 apiVersion: ibm.com/v1
 kind: IBMApplicationGateway
@@ -478,9 +476,9 @@ data:
 
 ##### Web Source
 
-If a part or all of the IBM Application Gateway configuration is to be stored in an external web location. The web location must exist and be accessible prior to creating the custom object. If not, the creation of the IBM Application Gateway instance will fail.
+This source type is used if a part or all of the IBM Application Gateway configuration is to be stored in an external web location. The web location must exist and be accessible prior to creating the custom object. If not, the creation of the IBM Application Gateway instance will fail.
 
-For a simplistic web location that does not require any authorization or other HTTP headers in the GET request, only the URL is required:
+For a simplistic web location, that does not require any authorization or other HTTP headers in the GET request, only the URL is required:
 
 ```yaml
 apiVersion: ibm.com/v1
@@ -493,7 +491,7 @@ spec:
       url: https://raw.github.com/iag_config/config.yaml
 ```          
 
-For a more advanced web location that does require additional information in the form of HTTP headers, the headers must also be defined:
+For a more advanced web location, that does require additional information in the form of HTTP headers, the headers must also be defined:
 
 ```yaml
 apiVersion: ibm.com/v1
@@ -535,13 +533,13 @@ data:
 
 Changes to either literal or config map configuration sources will result in the IBM Application Gateway operator being notified and the running instances being updated as required. The web source differs in that there is no listener that is notified or checks for changes to the remote configuration. As such if the external web configuration is updated there are 2 manual steps that must be run in Kubernetes for the changes to take effect.
 
-First perform a manual update of any running deployments that reference the external web config:
+First, perform a manual update of any running deployments that reference the external web config:
 
 ```shell
 kubectl rollout restart deployment.apps/<iag-instance>
 ```
 
-Optionally update the revision history to add the change cause:
+Next, optionally update the revision history to add the change cause:
 
 ```shell
 kubectl edit deployment.apps/<iag-instance>
@@ -561,15 +559,11 @@ metadata:
 
 ##### OIDC Registration Configuration Source
 
-XXX: To be done
-
 A single oidc_registration configuration source may be added to the list of sources defined in the custom resource definition. Defining more than one oidc_registration source will result in an error. The operator requires the following properties to be specified:
 
-* discoveryEndpoint. This is the endpoint that can be used to discover the registration endpoint and token endpoint of the OIDC OP.
+* discoveryEndpoint. This is the endpoint that can be used to discover the registration endpoint and token endpoint of the OIDC provider.
 * postData. Specifies any POST data that is required to be sent as part of the registration request.
 * secret. Specifies a Kubernetes secret that may contain authorization data for the registration request. This is also the location where the resulting client ID and secret are stored upon successful registration.
-
-The following custom resource definition:
 
 ```yaml
 apiVersion: ibm.com/v1
@@ -594,11 +588,11 @@ The oidc\_registration source will always be handled last by the operator when m
 
 #### Custom Object changes
 
-The IBM Application Gateway custom objects are constantly being monitored by the controller. Any significant changes will result in the running pods being reloaded with the new configuration. 
+The IBM Application Gateway custom objects are constantly being monitored by the operator. Any significant changes will result in the running pods being reloaded with the new configuration. 
 
 Note that in this context a reload of an IBM Application Gateway application means a rolling update of each running pod. The running pods will not be deleted until a new replacement pod with the changes has been created and is available. In this way there will be no disruption to service. If the update fails the existing pods will remain running.
 
-The following changes to custom objects are considered significant resulting in a pod reload (any other changes will require a manual reload if desired):
+The following changes to custom objects are considered significant, resulting in a pod reload (any other changes will require a manual reload if desired):
 
 1. Replica count
 2. Language
@@ -618,11 +612,11 @@ To change the number of replicas for a running IBM Application Gateway applicati
 kubectl apply -f iag-instance.yaml
 ```
 
-At this point the controller should apply the change by creating/removing pods as required.
+At this point the operator should apply the change by creating/removing pods as required.
 
 ##### Changing Language
 
-To change the language that the IBM Application Gateway error messages are displayed:
+To change the language in which the IBM Application Gateway error messages are displayed:
 
 1. Modify the YAML file for the required custom object by setting the lang entry to one of the following:
 
@@ -649,13 +643,13 @@ ru | Russian
 kubectl apply -f iag-instance.yaml
 ```
 
-At this point the controller should apply the change by reloading each running pod.
+At this point the operator should apply the change by reloading each running pod.
 
 ##### Changing the Service Account
 
 To change the Kubernetes service account that the IBM Application Gateway application is running as:
 
-1. Ensure that the new service account exists in Kubernetes
+1. Ensure that the new service account exists in the Kubernetes environment
 2. Modify the YAML file for the required custom object by setting the serviceAccountName entry to the desired value
 3. Apply the changes:
 
@@ -663,7 +657,7 @@ To change the Kubernetes service account that the IBM Application Gateway applic
 kubectl apply -f iag-instance.yaml
 ```
 
-At this point the controller should apply the change by reloading each running pod.
+At this point the operator should apply the change by reloading each running pod.
 
 ##### Changing the Literal Configuration
 
@@ -676,7 +670,7 @@ To change the literal configuration that the IBM Application Gateway application
 kubectl apply -f iag-instance.yaml
 ```
 
-At this point the controller should apply the change by reloading each running pod.
+At this point the operator should apply the change by reloading each running pod.
 
 Remember that for multiple configuration entries the sources are merged to produce a master configuration. This merging is done in the order that they are defined. Changes to an earlier configuration source may NOT result in an actual change if a later source defines the same entry.
 
@@ -691,7 +685,7 @@ To change the configuration that the IBM Application Gateway application is usin
 kubectl apply -f iag-config.yaml
 ```
 
-At this point the controller should apply the change by reloading each running pod.
+At this point the operator should apply the change by reloading each running pod.
 
 Remember that for multiple configuration entries the sources are merged to produce a master configuration. This merging is done in the order that they are defined. Changes to an earlier configuration source may NOT result in an actual change if a later source defines the same entry.
 
@@ -706,7 +700,7 @@ To upgrade a running IBM Application Gateway instance, change the image location
 kubectl apply -f iag-instance.yaml
 ```
 
-At this point the controller should apply the change by recreating each running pod with the new image.
+At this point the operator should apply the change by recreating each running pod with the new image.
 
 #### Revision History
 
@@ -726,7 +720,7 @@ REVISION  CHANGE-CAUSE
 5         Language changed from en to fr
 ```
 
-The following deployment roll back operation is not supported for the operator deployment.
+The following deployment roll back operation is *not* supported for the operator deployment.
 
 ```shell
 kubectl rollout undo deployment.apps/iag-instance
@@ -820,7 +814,7 @@ resource_servers:
         port: 80
 ```
 
-The different sources of configuration are handled (in the order they are defined in the custom object YAML file) and merged with the previous defined configuration to create a final master config map that is used by the IBM Application Gateway instance
+The different sources of configuration are processed in the order they are defined in the custom object YAML file, and merged with the previous defined configuration to create a final master config map that is used by the IBM Application Gateway instance.
 
 ```yaml
 apiVersion: v1
@@ -854,7 +848,7 @@ data:
 
 The name of the new master config map is derived from the IBM Application Gateway instance name. For example if the instance name is iag-instance, a new master config map will be created with the name iag-instance-config-iag-internal-generated9rdnh.
 
-Note that the merging is performed in order. If duplicate entries are defined in more than one location, the final location will contain the value that will be created in the master configuration. The only exception to this is when the entries are array entries. In this case the final merged config will contain all of the configured entries. For example see the resource_server entries in the previous example.
+Note that the merging is performed in order. If duplicate entries are defined in more than one location, the final location will contain the value that will be used in the master configuration. The only exception to this is when the entries are array entries. In this case the final merged config will contain all of the configured entries. For an example of this refer to the resource_server entries in the previous example.
 
 > Warning: If multiple sources each define the same array entries, this may result in the merged config being invalid and the IBM Application Gateway instances failing to start.
 
@@ -862,7 +856,7 @@ Note that the merging is performed in order. If duplicate entries are defined in
 
 A simple hello world example which shows how to protect an application using a custom resource can be found at: [docs/custom-resource-example.md](docs/custom-resource-example.md).
 
-An addition hello world example, which shows how to dynamically register the client with the OIDC provider, can be found at: [docs/dynamic-client-example.md](docs/dynamic-client-example.md).
+An additional hello world example, which shows how to dynamically register the client with the OIDC provider, can be found at: [docs/dynamic-client-example.md](docs/dynamic-client-example.md).
 
 ### Sidecar Model
 
@@ -886,7 +880,7 @@ The IBM Application Gateway operator will be called by Kubernetes for each deplo
 
 If any of the annotation keys has a prefix of "ibm-application-gateway.security.ibm.com/" the IBM Application Gateway operator will mutate the request. The annotation keys and values are used to determine how the IBM Application Gateway sidecar container will be configured.
 
-The supported annotations are mapped in the following categories:
+The supported annotations are mapped into the following categories:
 
 1. Deployment
 2. Service
@@ -899,7 +893,7 @@ Deployment annotations define how the IBM Application Gateway sidecar container 
 
 | Name | Description |
 |----------|---------|
-|ibm-application-gateway.security.ibm.com/deployment.image | The name, tag and location of the IBM Application Gateway docker image. This is a required value and if not specified or the value is incorrect the request will fail. |
+|ibm-application-gateway.security.ibm.com/deployment.image | The name, tag and location of the IBM Application Gateway docker image. This is a required value and if not specified, or the value is incorrect, the request will fail. |
 |ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy | The policy used to decide when to pull the IBM Application Gateway docker image from a remote server. If not specified the value will be set to ifNotPresent. |
 
 > Note: If an imagePullSecret is required to pull the image it must be defined in the application deployment YAML.
@@ -929,7 +923,7 @@ Example:
 ibm-application-gateway.security.ibm.com/service.port: "30441"
 ```
 
-will result in a new service being created:
+This definition will result in a new service being created:
 
 ```yaml
 apiVersion: v1
@@ -959,12 +953,12 @@ The IBM Application Gateway sidecar container requires YAML configuration in ord
 
 > The new master configmap will be created by the admission controller. This means that the configmap will exist even if the Kubernetes deployment operation fails.
 
-The supported configuration keys are:
+The supported configuration keys include:
 
 | Name | Description |
 |----------|---------|
-|ibm-application-gateway.security.ibm.com/configuration.\<id\>.type | The type of the configuration source. The id must be unique for each separate source. The supported values are "configmap", "web" or "oidc_registration". Note that there can only be a single oidc_registration entry. |
-|ibm-application-gateway.security.ibm.com/configuration.\<id\>.order | The order in which to merge the configuration source into the master configmap. Later merges will overwrite any earlier values apart from array entries where the master configmap will contain all specified array entries from all sources. Note that the oidc_registration entry will always be merged last. |
+|ibm-application-gateway.security.ibm.com/configuration.\<id\>.type | The type of the configuration source. The id must be unique for each separate source. The supported values are "configmap", "web" or "oidc\_registration". Note that there can only be a single oidc\_registration entry. |
+|ibm-application-gateway.security.ibm.com/configuration.\<id\>.order | The order in which to merge the configuration source into the master configmap. Later merges will overwrite any earlier values apart from array entries where the master configmap will contain all specified array entries from all sources. Note that the oidc\_registration entry will always be merged last. |
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.name | The name of the config map that contains the IBM Application Gateway configuration. Required for configmap type. |
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.dataKey | The config map YAML entry that contains the IBM Application Gateway configuration. Required for configmap type. |
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.url | The URL location of the remote IBM Application Gateway configuration. Required for web type. |
@@ -972,11 +966,11 @@ The supported configuration keys are:
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.header.\<hdrid\>.name | The name of the header that will be added to the HTTP request. |
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.header.\<hdrid\>.value | The value of the header that will be added to the HTTP request. If the type is set as secret this will be the name of the Kubernetes secret. |
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.header.\<hdrid\>.secretKey | The key name to retrieve the header value from the specified Kubernetes secret. Required if the type is set as secret. |
-|ibm-application-gateway.security.ibm.com/configuration.\<id\>.discoveryEndpoint | The endpoint that can be used to discover the registration endpoint and token endpoint of the OIDC OP. Required for oidc_registration type. |
-|ibm-application-gateway.security.ibm.com/configuration.\<id\>.secret | Specifies a Kubernetes secret that may contain authorization data for the registration request. This is also the location where the resulting client ID and secret are stored upon successful registration. Required for oidc_registration type. |
-|ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.name | The name of a POST data entry that will be added to the registration request as POST data. Only valid for oidc_registration type. |
-|ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.value | A single value of the POST data entry that will be added to the registration request as POST data. Only valid for oidc_registration type. |
-|ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.values.\<valueid\> | A value that will be added to an array of values for the POST data entry that will be added to the registration request as POST data. This will be ignored if a single "value" has been set. Only valid for oidc_registration type. |
+|ibm-application-gateway.security.ibm.com/configuration.\<id\>.discoveryEndpoint | The endpoint that can be used to discover the registration endpoint and token endpoint of the OIDC provider. Required for oidc\_registration type. |
+|ibm-application-gateway.security.ibm.com/configuration.\<id\>.secret | Specifies a Kubernetes secret that may contain authorization data for the registration request. This is also the location where the resulting client ID and secret are stored upon successful registration. Required for oidc\_registration type. |
+|ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.name | The name of a POST data entry that will be added to the registration request as POST data. Only valid for oidc\_registration type. |
+|ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.value | A single value of the POST data entry that will be added to the registration request as POST data. Only valid for oidc\_registration type. |
+|ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.values.\<valueid\> | A value that will be added to an array of values for the POST data entry, used the registration request. This will be ignored if a single "value" has also been set. Only valid for oidc\_registration type. |
 
 Example:
 
@@ -1008,7 +1002,7 @@ ibm-application-gateway.security.ibm.com/configuration.oidc.postData.ca.value: "
 ibm-application-gateway.security.ibm.com/configuration.oidc.order: "3"
 ```
 
-will result in a new master configmap being created:
+This definition will result in a new master configmap being created:
 
 ```yaml
 apiVersion: v1
@@ -1064,7 +1058,7 @@ Example:
 ibm-application-gateway.security.ibm.com/env.LANG: fr
 ```
 
-will result in a new environment variable being set "LANG=fr".
+This definition will result in a new environment variable being set "LANG=fr".
 
 #### Supported RESTful operations
 
@@ -1072,8 +1066,8 @@ will result in a new environment variable being set "LANG=fr".
 
 When a deployment is first created the IBM Application Gateway operator will be called with a RESTful create operation. The operator will perform the following tasks:
 
-1. Check to see if the deployment annotations contains any keys with the prefix "ibm-application-gateway.security.ibm.com/". If not then the operator will make no changes and return.
-2. Run some validation on the annotations to try and ensure that no simple failures will occur leaving the environment in an intermediate state.
+1. Check to see if the deployment annotations contain any keys with the prefix "ibm-application-gateway.security.ibm.com/". If not, the operator will make no changes and return.
+2. Run some validation on the annotations to try and ensure that no simple failures will occur which might leave the environment in an intermediate state.
 3. Check to see if the annotations contain a service port. If so a new service will be created.
 4. Read and merge the configuration sources to create a new master configmap.
 5. Return a new IBM Application Gateway container patch as the response. This will result in the IBM Application Gateway sidecar being created alongside the application.
@@ -1082,8 +1076,8 @@ When a deployment is first created the IBM Application Gateway operator will be 
 
 When a deployment is modified the IBM Application Gateway operator will be called with a RESTful update operation. The operator will perform the following tasks:
 
-1. Check to see if the deployment annotations contains any keys with the prefix "ibm-application-gateway.security.ibm.com/". If not then the operator will make no changes and return.
-2. Run some validation on the annotations to try and ensure that no simple failures will occur leaving the environment in an intermediate state.
+1. Check to see if the deployment annotations contain any keys with the prefix "ibm-application-gateway.security.ibm.com/". If not, the operator will make no changes and return.
+2. Run some validation on the annotations to try and ensure that no simple failures will occur which might leave the environment in an intermediate state.
 3. Check to see if the annotations contain a service port. If so the service will be updated if the port has changed.
 4. Read and merge the configuration sources to create a new master configmap.
 5. Return a new IBM Application Gateway container patch as the response. This will result in the IBM Application Gateway sidecar being updated alongside the application.
@@ -1092,7 +1086,7 @@ When a deployment is modified the IBM Application Gateway operator will be calle
 
 When a deployment is deleted the IBM Application Gateway operator will be called with a RESTful delete operation. The operator will perform the following tasks:
 
-1. Check to see if the deployment annotations contains any keys with the prefix "ibm-application-gateway.security.ibm.com/". If not then the operator will make no changes and return.
+1. Check to see if the deployment annotations contain any keys with the prefix "ibm-application-gateway.security.ibm.com/". If not, the operator will make no changes and return.
 2. Delete the service if it exists.
 3. Delete the master configmap.
 
@@ -1155,7 +1149,6 @@ kubectl apply -f deployment.yaml
 ```shell
 $ kubectl get pods
 NAME                                                READY   STATUS             RESTARTS   AGE
-ibm-application-gateway-operator-58d7df64d9-848jz   1/1     Running.           1          1d
 testapp-645db9c874-bmq4k                            2/2     Running            1          1d
 ```
 
@@ -1180,7 +1173,7 @@ A simple hello world example which shows how to protect an application using the
 
 ## Troubleshooting
 
-There are various ways to try and find any issues with the IBM Application Gateway operator or the deployment instances that are created for custom resources.
+There are various ways to try and locate any issues with the IBM Application Gateway operator, or the deployment instances that are created for custom resources.
 
 1. Operator logs
 

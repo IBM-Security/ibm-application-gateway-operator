@@ -309,7 +309,7 @@ The IBM Application Gateway operator will load its own CA certificates by defaul
 
 1. For a non production scenario where the trust validation is not required a flag named insecureTLS can be set in the Kubernetes secret data that will disable trust validation. This is the same secret that has been specified in the OIDC registration definition. Setting the flag to true will disable trust validation. 
 
-Note: As the flag is being set in a Kubernetes secret the value must be base64 encoded. First use a base64 encoding tool to get the value to set. For example on linux:
+> Note: As the flag is being set in a Kubernetes secret the value must be base64 encoded. First use a base64 encoding tool to get the value to set. For example on linux:
 
 ```shell
 $ echo -n "true" | base64
@@ -324,9 +324,7 @@ data:
   insecureTLS: dHJ1ZQ==
 ```
 
-2. The OIDC provider certificate can be added to the Kubernetes operator service account data and it will then be added to the trusted certificates when the call to the OIDC provider is made. The certificate should be extracted from the OIDC provider and added to the operator service account token secret as a new entry "service-ca.crt".
-
-For example. If the operator is running with the service account "ibm-application-gateway-operator" there will be a service account token secret named "ibm-application-gateway-operator-token-\<random\>" that exists in Kubernetes. Add the base 64 encoded certificate to this secret.
+2. The OIDC provider certificate can be added to the Kubernetes operator service account data and it will then be added to the trusted certificates when the call to the OIDC provider is made. The certificate should be extracted from the OIDC provider and added to the operator service account token secret as a new entry "service-ca.crt".  For example. If the operator is running with the service account "ibm-application-gateway-operator" there will be a service account token secret named "ibm-application-gateway-operator-token-\<random\>" that exists in Kubernetes. Add the base 64 encoded certificate to this secret.
 
 ```yaml
 apiVersion: v1

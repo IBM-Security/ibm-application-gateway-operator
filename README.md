@@ -874,7 +874,7 @@ The IBM Application Gateway supports the sidecar pattern such that it can be con
 
 #### Annotations
 
-The IBM Application Gateway operator will be called by Kubernetes for each deployment management request. This means that there needs to be a method by which the IBM Application Gateway operator can determine whether or not to perform any mutation. The IBM Application Gateway operator will check the deployment annotations to decide whether or not to handle container modifications.
+The IBM Application Gateway operator will be called by Kubernetes for each deployment management request. This means that there needs to be a method by which the IBM Application Gateway operator can determine whether or not to perform any mutation on the request. The IBM Application Gateway operator will check the deployment annotations to decide whether or not to handle container modifications.
 
 If any of the annotation keys has a prefix of "ibm-application-gateway.security.ibm.com/" the IBM Application Gateway operator will mutate the request. The annotation keys and values are used to determine how the IBM Application Gateway sidecar container will be configured.
 
@@ -968,7 +968,7 @@ The supported configuration keys include:
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.secret | Specifies a Kubernetes secret that may contain authorization data for the registration request. This is also the location where the resulting client ID and secret are stored upon successful registration. Required for oidc\_registration type. |
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.name | The name of a POST data entry that will be added to the registration request as POST data. Only valid for oidc\_registration type. |
 |ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.value | A single value of the POST data entry that will be added to the registration request as POST data. Only valid for oidc\_registration type. |
-|ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.values.\<valueid\> | A value that will be added to an array of values for the POST data entry, used the registration request. This will be ignored if a single "value" has also been set. Only valid for oidc\_registration type. |
+|ibm-application-gateway.security.ibm.com/configuration.\<id\>.postData.\<pdid\>.values.\<valueid\> | A value that will be added to an array of values for the POST data entry, used in the registration request. This will be ignored if a single "value" has also been set. Only valid for oidc\_registration type. |
 
 Example:
 
@@ -1056,7 +1056,7 @@ Example:
 ibm-application-gateway.security.ibm.com/env.LANG: fr
 ```
 
-This definition will result in a new environment variable being set "LANG=fr".
+This definition will result in a new environment variable being set: "LANG=fr".
 
 #### Supported RESTful operations
 
@@ -1066,7 +1066,7 @@ When a deployment is first created the IBM Application Gateway operator will be 
 
 1. Check to see if the deployment annotations contain any keys with the prefix "ibm-application-gateway.security.ibm.com/". If not, the operator will make no changes and return.
 2. Run some validation on the annotations to try and ensure that no simple failures will occur which might leave the environment in an intermediate state.
-3. Check to see if the annotations contain a service port. If so a new service will be created.
+3. Check to see if the annotations contain a service port. If so, a new service will be created.
 4. Read and merge the configuration sources to create a new master configmap.
 5. Return a new IBM Application Gateway container patch as the response. This will result in the IBM Application Gateway sidecar being created alongside the application.
 
@@ -1076,7 +1076,7 @@ When a deployment is modified the IBM Application Gateway operator will be calle
 
 1. Check to see if the deployment annotations contain any keys with the prefix "ibm-application-gateway.security.ibm.com/". If not, the operator will make no changes and return.
 2. Run some validation on the annotations to try and ensure that no simple failures will occur which might leave the environment in an intermediate state.
-3. Check to see if the annotations contain a service port. If so the service will be updated if the port has changed.
+3. Check to see if the annotations contain a service port. If so, the service will be updated if the port has changed.
 4. Read and merge the configuration sources to create a new master configmap.
 5. Return a new IBM Application Gateway container patch as the response. This will result in the IBM Application Gateway sidecar being updated alongside the application.
 
@@ -1090,7 +1090,7 @@ When a deployment is deleted the IBM Application Gateway operator will be called
 
 #### Example Deployment
 
-Assuming that the IBM Application Gateway operator has been setup and deployed the following deployment will result in an IBM Application Gateway sidecar container being created alongside the application:
+Assuming that the IBM Application Gateway operator has been setup and deployed, the following deployment will result in an IBM Application Gateway sidecar container being created alongside the application:
 
 ```yaml
 apiVersion: apps/v1

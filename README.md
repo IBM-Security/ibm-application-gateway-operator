@@ -107,7 +107,7 @@ To install the IBM Application Gateway operator from the RedHat Operator Catalog
 5. Ensure that the IBM Application Gateway operator has been installed correctly by the Operator Lifecycle Manager. 
 ![OpenShift Operator Installed](docs/images/openshift-operator-installed.png)
 
-At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator in the RedHat Operator Catalog. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind "IBMApplicationGateway", or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
+At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator in the RedHat Operator Catalog. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
 
 
 ### Standard Kubernetes Environment
@@ -134,7 +134,7 @@ NAME                                        DISPLAY                            V
 ibm-application-gateway-operator.v22.02.0   IBM Application Gateway Operator   22.02.0              Succeeded
 ``` 
 
-At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator on OperatorHub.io. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind "IBMApplicationGateway", or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
+At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator on OperatorHub.io. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
 
 
 ## Usage
@@ -216,7 +216,7 @@ The request to an OIDC provider to dynamically register a new client will requir
 
 IBM Security Verify properties are defined in the [IBM Knowledge Center](https://www.ibm.com/support/knowledgecenter/en/SSCT62/com.ibm.iamservice.doc/tasks/t_dynamic_kc.html).
 
-When using the IBMApplicationGateway custom resource the POST data properties may be added in one of 2 ways:
+When using the `IBMApplicationGateway` custom resource the POST data properties may be added in one of 2 ways:
 
 1. As a single string value using the "value" YAML key; or
 2. As an array of string values using the "values" YAML key
@@ -338,11 +338,11 @@ data:
 
 An IBM Application Gateway instance deployed on Kubernetes is a complex deployment. In particular the configuration can be defined externally in one or more locations and changes to this configuration may require all instances to be reloaded for the changes to take effect. The existing Kubernetes deployment controller does not have any knowledge of how an IBM Application Gateway instance should behave when the configuration changes. 
 
-In the custom resource model the operator will monitor for the updates to resources of the kind "IBMApplicationGateway" and use these custom resources to manage the lifecycle of the IBM Application Gateway instances.
+In the custom resource model the operator will monitor for the updates to resources of the kind `IBMApplicationGateway` and use these custom resources to manage the lifecycle of the IBM Application Gateway instances.
 
 #### Custom Object
 
-A custom object, of the kind "IBMApplicationGateway", is used by the operator to manage the lifecycle of the IBM Application Gateway instances.  Each of these custom objects, once created in Kubernetes, will result in an IBM Application Gateway deployment being created by the operator.
+A custom object, of the kind `IBMApplicationGateway`, is used by the operator to manage the lifecycle of the IBM Application Gateway instances.  Each of these custom objects, once created in Kubernetes, will result in an IBM Application Gateway deployment being created by the operator.
 
 > Warning: Prior to creating the custom object in Kubernetes ensure that any referenced secrets, configmaps or external web sources exist.
 

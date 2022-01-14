@@ -51,6 +51,7 @@ At a high level, to certify the operator, you need to:
 	1. Provide the details of the operator on the 'Settings' tab;
 	2. Test the operator and submit a pull request.  
 
+
 	> It is important that in the pull request the images contained within the cluster service version file are updated, replacing the tag name with the corresponding sha256 digest.
 
 ## Bundle Testing

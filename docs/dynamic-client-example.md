@@ -11,9 +11,8 @@ The IBM Application Gateway can be deployed in Kubernetes as an instance of the 
 The following steps will:
 
 * Register a new client application with IBM Security Verify
-* Create an application that will be fronted by IBM Application Gateway
 * Access the application via the IBM Application Gateway
-* The page will show the identity and other headers that have been added to the request by the IBM Application Gateway
+	* The page will show the identity and other headers that have been added to the request by the IBM Application Gateway
 
 
 1. Paste the following into a file named iag\_service\_account.yaml.
@@ -100,11 +99,11 @@ spec:
 
 8. Deploy the custom object.
 
-> This will dynamically register a new client/application named OperatorTest with IBM Security Verify.
-
 ```shell
 kubectl apply -f co.yaml
 ```
+
+> This will dynamically register a new client/application named OperatorTest with IBM Security Verify.
 
 9. Ensure that the IBM Application Gateway pod has started correctly.
 
@@ -113,19 +112,15 @@ kubectl get all
 
 NAME                                                    READY   STATUS    RESTARTS   AGE
 pod/iag-instance-76759f9764-nh4jd                       1/1     Running   0          3s
-pod/ibm-application-gateway-operator-6bb9c7d4fc-lq4v2   1/1     Running   0          10m
 
 NAME                                               TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
-service/ibm-application-gateway-operator-metrics   ClusterIP      10.110.202.103   <none>        8383/TCP,8686/TCP   10m
 service/kubernetes                                 ClusterIP      10.96.0.1        <none>        443/TCP             11m
 
 NAME                                               READY   UP-TO-DATE   AVAILABLE   AGE
 deployment.apps/iag-instance                       1/1     1            1           3s
-deployment.apps/ibm-application-gateway-operator   1/1     1            1           10m
 
 NAME                                                          DESIRED   CURRENT   READY   AGE
 replicaset.apps/iag-instance-76759f9764                       1         1         1       3s
-replicaset.apps/ibm-application-gateway-operator-6bb9c7d4fc   1         1         1       10m
 ```
 
 10. Expose the IBM Application Gateway port.
@@ -148,11 +143,11 @@ https://127.0.0.1:30112/static
 
 ![Demo Application](images/intro-generic-demoapp.png)
 
-> This page includes the following pieces that have been added by the IBM Application Gateway: <br/>
->    - A JWT header has been added <br/>
->    - The AZN-CRED-REGISTRY-ID header has been added <br/>
->    - The MECH-INFO header has been added <br/>
->    - The JWT has been extracted.
+This page includes the following information which has added by the IBM Application Gateway:
+
+ * JWT HTTP header
+ * AZN-CRED-REGISTRY-ID HTTP header 
+ * MECH-INFO HTTP header has been added
 
 14. Exit the port forward process by pressing ctrl-c in the shell.
 
@@ -160,4 +155,5 @@ https://127.0.0.1:30112/static
 
 ```shell
 kubectl delete -f co.yaml
+kubectl delete -f iag_service_account.yaml
 ```

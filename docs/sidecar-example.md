@@ -11,7 +11,7 @@ The following steps will:
 
 * Create an application that will be fronted by IBM Application Gateway
 * Access the application via the IBM Application Gateway
-* The page will show the identity and other headers that have been added to the request by the IBM Application Gateway
+	* The page will show the identity and other headers that have been added to the request by the IBM Application Gateway
 
 > This example does not include authentication. This example illustrates the deployment process for using IBM Application Gateway as a proxy to a protected application. 
 
@@ -147,21 +147,16 @@ kubectl apply -f deployment.yaml
 kubectl get all
 
 NAME                                                    READY   STATUS    RESTARTS   AGE
-pod/ibm-application-gateway-operator-5b55989d98-w22n9   1/1     Running   0          12m
 pod/test-7797447ccf-zg7nq                               2/2     Running   0          34s
 
 NAME                                                    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
-service/ibm-application-gateway-injector-webhook-svc    ClusterIP   10.105.52.14    <none>        443/TCP             10m
-service/ibm-application-gateway-operator-metrics        ClusterIP   10.97.147.42    <none>        8383/TCP,8686/TCP   12m
 service/kubernetes                                      ClusterIP   10.96.0.1       <none>        443/TCP             32m
 service/test-ibm-application-gateway-sidecar-svc2tmd4   NodePort    10.111.179.97   <none>        8443:30441/TCP      34s
 
 NAME                                               READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/ibm-application-gateway-operator   1/1     1            1           12m
 deployment.apps/test                               1/1     1            1           34s
 
 NAME                                                          DESIRED   CURRENT   READY   AGE
-replicaset.apps/ibm-application-gateway-operator-5b55989d98   1         1         1       12m
 replicaset.apps/test-7797447ccf                               1         1         1       34s
 ```
 
@@ -171,9 +166,7 @@ replicaset.apps/test-7797447ccf                               1         1       
 kubectl port-forward deployment.apps/iag-instance 30441:30441
 ```
 
-7. Leave the console as is and using a browser access the demo URL. Make sure its https rather than http.
-
-For example:
+7. Leave the console as is and using a browser access the demo URL. Make sure its https rather than http.  For example:
 
 ```
 https://127.0.0.1:30441/demo-local
@@ -183,11 +176,11 @@ https://127.0.0.1:30441/demo-local
 
 ![Demo Application](images/intro-generic-demoapp.png)
 
-> This page includes the following pieces that have been added by the IBM Application Gateway: <br/>
->    - A JWT header has been added <br/>
->    - The AZN-CRED-REGISTRY-ID header has been added <br/>
->    - The MECH-INFO header has been added <br/>
->    - The JWT has been extracted.
+This page includes the following information which has added by the IBM Application Gateway:
+
+ * JWT HTTP header
+ * AZN-CRED-REGISTRY-ID HTTP header 
+ * MECH-INFO HTTP header has been added
 
 9. Exit the port-forwarding service by pressing ctrl-c in the shell.
 

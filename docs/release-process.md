@@ -19,7 +19,7 @@ The fields for the release should be:
 |Release title | The version number, e.g. `v22.02.0`
 |Release description | The resources associated with the \<version\-number> IBM Application Gateway operator release.
 
-After the release has been created the GitHub actions workflow ([https://github.com/IBM-Security/ibm-application-gateway-operator/actions/workflows/build.yml](https://github.com/IBM-Security/ibm-application-gateway-operator/actions/workflows/build.yml)) will be executed to generate the build.  This build process will include:
+After the release has been created the GitHub actions workflow ([https://github.com/IBM-Security/ibm-application-gateway-operator/actions/workflows/build.yaml](https://github.com/IBM-Security/ibm-application-gateway-operator/actions/workflows/build.yaml)) will be executed to generate the build.  This build process will include:
 
 * publishing the generated docker images to DockerHub;
 * adding the manifest zip file to the release artifacts in GitHub.
@@ -45,11 +45,11 @@ Certification projects are managed through the [RedHat Partner Connect Portal](h
 At a high level, to certify the operator, you need to:
 
 1. Create a 'certification project' for the operator using the RedHat Partner Connect Portal ([instructions](https://redhat-connect.gitbook.io/partner-guide-for-red-hat-openshift-and-container/certify-your-operator/creating-an-operator-project));
-	2. Provide the details of the operator on the 'Settings' tab;
-	3. Scan the new image using the 'Scan new image' button on the 'Images' tab;
+	1. Provide the details of the operator on the 'Settings' tab;
+	2. Scan the new image using the 'Scan new image' button on the 'Images' tab;
 2. Create a 'certification project' for the operator bundle using the RedHat Partner Connect Portal ([instructions](https://redhat-connect.gitbook.io/partner-guide-for-red-hat-openshift-and-container/certify-your-operator/certify-your-operator-bundle-image));
-	3. Provide the details of the operator on the 'Settings' tab;
-	4. Test the operator and submit a pull request.  
+	1. Provide the details of the operator on the 'Settings' tab;
+	2. Test the operator and submit a pull request.  
 
 	> It is important that in the pull request the images contained within the cluster service version file are updated, replacing the tag name with the corresponding sha256 digest.
 

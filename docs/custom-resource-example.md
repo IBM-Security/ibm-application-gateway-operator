@@ -13,7 +13,7 @@ The following steps will:
 
 * Create an instance of the IBM Application Gateway using a custom resource
 * Access a protected application via the IBM Application Gateway
-* The page will show the identity and other headers that have been added to the request by the IBM Application Gateway
+	* The page will show the identity and other headers that have been added to the request by the IBM Application Gateway
 
 > This example does not include authentication. This example illustrates the deployment process for using IBM Application Gateway as a proxy to a protected application. 
 
@@ -112,11 +112,11 @@ https://127.0.0.1:30112/static
 
 ![Demo Application](images/intro-generic-demoapp.png)
 
-> This page includes the following pieces that have been added by the IBM Application Gateway: <br/>
->    - A JWT header has been added <br/>
->    - The AZN-CRED-REGISTRY-ID header has been added <br/>
->    - The MECH-INFO header has been added <br/>
->    - The JWT has been extracted.
+This page includes the following information which has added by the IBM Application Gateway:
+
+ * JWT HTTP header
+ * AZN-CRED-REGISTRY-ID HTTP header 
+ * MECH-INFO HTTP header has been added
 
 9. Exit the port forward process by pressing ctrl-c in the shell.
 
@@ -124,4 +124,5 @@ https://127.0.0.1:30112/static
 
 ```shell
 kubectl delete -f co.yaml
+kubectl delete -f iag_service_account.yaml
 ```

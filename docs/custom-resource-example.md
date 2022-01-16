@@ -29,7 +29,7 @@ metadata:
 2. Create the service account.
 
 ```shell
-kubectl apply -f iag_service_account.yaml
+kubectl create -f iag_service_account.yaml
 ```
 
 3. Paste the following into a file named co.yaml.
@@ -75,7 +75,7 @@ spec:
 4. Deploy the custom object.
 
 ```shell
-kubectl apply -f co.yaml
+kubectl create -f co.yaml
 ```
 
 5. Ensure that the IBM Application Gateway pod has started correctly.
@@ -112,11 +112,10 @@ https://127.0.0.1:30112/static
 
 ![Demo Application](images/intro-generic-demoapp.png)
 
-This page includes the following information which has added by the IBM Application Gateway:
+This page includes the following information which has been added by the IBM Application Gateway:
 
  * JWT HTTP header
- * AZN-CRED-REGISTRY-ID HTTP header 
- * MECH-INFO HTTP header has been added
+ * AZN-CRED-REGISTRY-ID JWT data
 
 9. Exit the port forward process by pressing ctrl-c in the shell.
 

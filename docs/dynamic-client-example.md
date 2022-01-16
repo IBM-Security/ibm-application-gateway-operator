@@ -22,12 +22,37 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ibm-application-gateway
+  
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-secrets
+subjects:
+- kind: ServiceAccount
+  name: ibm-application-gateway 
+roleRef:
+  kind: ClusterRole
+  name: secret-reader
+  apiGroup: rbac.authorization.k8s.io
 ```
 
 2. Create the IBM Application Gateway service account.
 
 ```shell
-kubectl apply -f iag_service_account.yaml
+kubectl create -f iag_service_account.yaml
 ```
 
 3. Retrieve the IBM Security Verify API Access client ID and secret. For details see the [IBM Security Verify documentation](https://www.ibm.com/support/knowledgecenter/SSCT62/com.ibm.iamservice.doc/tasks/api_clients.html#api_clients)
@@ -36,7 +61,7 @@ kubectl apply -f iag_service_account.yaml
 
 5. Paste the API Access client secret into a file named tokenRetrievalClientSecret.
 
-6. Create a Kubernetes secret containing the API Access client ID and secret.
+6. Create a Kubernetes secret containing the API Access client ID and secret, **remembering to replace the discoveryEndpoint entry with the discovery endpoint for your OIDC provider**.
 
 ```shell
 kubectl create secret generic oidc-client --from-file=./tokenRetrievalClientSecret --from-file=./tokenRetrievalClientId
@@ -100,7 +125,7 @@ spec:
 8. Deploy the custom object.
 
 ```shell
-kubectl apply -f co.yaml
+kubectl create -f co.yaml
 ```
 
 > This will dynamically register a new client/application named OperatorTest with IBM Security Verify.
@@ -141,13 +166,13 @@ https://127.0.0.1:30112/static
 
 13. The demo page is shown. 
 
-![Demo Application](images/intro-generic-demoapp.png)
+![Demo Application](images/intro-generic-demoapp-registration.png)
 
-This page includes the following information which has added by the IBM Application Gateway:
+This page includes the following information which has been added by the IBM Application Gateway:
 
  * JWT HTTP header
- * AZN-CRED-REGISTRY-ID HTTP header 
- * MECH-INFO HTTP header has been added
+ * AZN-CRED-REGISTRY-ID JWT data
+ * MECH-INFO JWT data
 
 14. Exit the port forward process by pressing ctrl-c in the shell.
 
@@ -156,4 +181,5 @@ This page includes the following information which has added by the IBM Applicat
 ```shell
 kubectl delete -f co.yaml
 kubectl delete -f iag_service_account.yaml
+kubectl delete secret oidc-client
 ```

@@ -94,6 +94,7 @@ type IBMApplicationGatewayReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/finalizers,verbs=update

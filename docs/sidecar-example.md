@@ -29,7 +29,7 @@ data:
       - path: /demo-local
         connection_type: tcp
         servers:
-        - host: localhost
+        - host: 127.0.0.1
           port: 8000
         identity_headers:
           attributes:
@@ -95,7 +95,7 @@ data:
 2. Create the IBM Application Gateway configuration configmap.
 
 ```shell
-kubectl apply -f test_config.yaml
+kubectl create -f test_config.yaml
 ```
 
 3. Paste the following into a file named deployment.yaml.
@@ -138,7 +138,7 @@ spec:
 4. Create the deployment.
 
 ```shell
-kubectl apply -f deployment.yaml
+kubectl create -f deployment.yaml
 ```
 
 5. Check the deployment. There should be a deployment application named “test” and a pod with a prefix of “test” that has 2 running containers.
@@ -163,24 +163,23 @@ replicaset.apps/test-7797447ccf                               1         1       
 6. Expose the IBM Application Gateway port.
 
 ```shell
-kubectl port-forward deployment.apps/iag-instance 30441:30441
+kubectl port-forward deployment.apps/test 30112:8443
 ```
 
 7. Leave the console as is and using a browser access the demo URL. Make sure its https rather than http.  For example:
 
 ```
-https://127.0.0.1:30441/demo-local
+https://127.0.0.1:30112/demo-local
 ```
 
 8. The demo page is shown. 
 
-![Demo Application](images/intro-generic-demoapp.png)
+![Demo Application](images/intro-generic-demoapp-sidecar.png)
 
-This page includes the following information which has added by the IBM Application Gateway:
+This page includes the following information which has been added by the IBM Application Gateway:
 
  * JWT HTTP header
  * AZN-CRED-REGISTRY-ID HTTP header 
- * MECH-INFO HTTP header has been added
 
 9. Exit the port-forwarding service by pressing ctrl-c in the shell.
 

@@ -61,13 +61,13 @@ kubectl create -f iag_service_account.yaml
 
 5. Paste the API Access client secret into a file named tokenRetrievalClientSecret.
 
-6. Create a Kubernetes secret containing the API Access client ID and secret, **remembering to replace the discoveryEndpoint entry with the discovery endpoint for your OIDC provider**.
+6. Create a Kubernetes secret containing the API Access client ID and secret.
 
 ```shell
 kubectl create secret generic oidc-client --from-file=./tokenRetrievalClientSecret --from-file=./tokenRetrievalClientId
 ``` 
 
-7. Paste the following into a file named co.yaml.
+7. Paste the following into a file named co.yaml, **remembering to replace the discoveryEndpoint entry with the discovery endpoint for your OIDC provider**.
 
 ```yaml
 apiVersion: ibm.com/v1

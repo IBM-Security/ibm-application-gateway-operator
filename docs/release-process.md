@@ -4,7 +4,7 @@ This document contains the release process which should be followed when generat
 
 ## Version Number
 
-The version number should be of the format: `v<year>.<month>.0`, for example: `v21.10.0`.
+The version number should be of the format: `v<year>.<month>.0`, for example: `v21.10.0`.  There should be no leading zero's in any part of the version number.  For exampe, `v22.02.0` should be `v22.2.0`.
 
 
 # Generating a GitHub Release
@@ -15,8 +15,8 @@ The fields for the release should be:
 
 |Field|Description
 |-----|----------- 
-|Tag | The version number, e.g. `v22.02.0`
-|Release title | The version number, e.g. `v22.02.0`
+|Tag | The version number, e.g. `v22.2.0`
+|Release title | The version number, e.g. `v22.2.0`
 |Release description | The resources associated with the \<version\-number> IBM Application Gateway operator release.
 
 After the release has been created the GitHub actions workflow ([https://github.com/IBM-Security/ibm-application-gateway-operator/actions/workflows/build.yaml](https://github.com/IBM-Security/ibm-application-gateway-operator/actions/workflows/build.yaml)) will be executed to generate the build.  This build process will include:

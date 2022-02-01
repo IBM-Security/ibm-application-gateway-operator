@@ -52,6 +52,9 @@ spec:
     type: MultiNamespace
   - supported: true
     type: AllNamespaces
+  relatedImages:
+    - name: ibm-application-gateway-operator
+      image: ibmcom/ibm-application-gateway-operator:--version--
   keywords:
   - IBM
   - Security

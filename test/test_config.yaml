@@ -6,7 +6,7 @@ metadata:
   name: test-config
 data:
   config: |
-    version: "21.12"
+    version: "22.07"
     resource_servers:
       - path: /demo-local
         connection_type: tcp

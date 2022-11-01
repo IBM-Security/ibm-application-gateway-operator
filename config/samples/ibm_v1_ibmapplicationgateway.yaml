@@ -9,7 +9,7 @@ spec:
   deployment:
     serviceAccountName: iag
     lang: C
-    image: ibmcom/ibm-application-gateway:21.12
+    image: icr.io/ibmappgateway/ibm-application-gateway:22.07
     imagePullPolicy: Always
     imagePullSecrets: 
       - name: regcred
@@ -53,7 +53,7 @@ spec:
           secretKey: value
     - type: literal 
       value: |
-        version: "21.12"
+        version: "22.07"
 
         server:
           local_applications:

@@ -90,7 +90,7 @@ jobs:
       # Perform the build.
       - name: Perform the build.
         run: |
-          export IMAGE_TAG_BASE=ibmcom/ibm-application-gateway-operator
+          export IMAGE_TAG_BASE=icr.io/ibmappgateway/ibm-application-gateway-operator
 
           case $GITHUB_REF in 
             refs/tags/v*)

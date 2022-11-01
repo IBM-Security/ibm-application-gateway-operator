@@ -1049,7 +1049,7 @@ func newDeploymentForCR(cr *ibmv1.IBMApplicationGateway, cmVersion string, cmNam
 					Containers: []corev1.Container{
 						{
 							Name:    podName,
-							Image:   imageName, // ibmcom/ibm-application-gateway:19.12
+							Image:   imageName, // icr.io/ibmappgateway/ibm-application-gateway:19.12
 							ImagePullPolicy: imagePullPolicy,
 							VolumeMounts: []corev1.VolumeMount{
 								{

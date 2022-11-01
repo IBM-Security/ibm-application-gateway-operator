@@ -24,7 +24,7 @@ metadata:
   name: test-config
 data:
   config: |
-    version: "21.12"
+    version: "22.07"
     resource_servers:
       - path: /demo-local
         connection_type: tcp
@@ -114,7 +114,7 @@ metadata:
     ibm-application-gateway.security.ibm.com/configuration.test.name: test-config
     ibm-application-gateway.security.ibm.com/configuration.test.dataKey: config
     ibm-application-gateway.security.ibm.com/configuration.test.order: "1"
-    ibm-application-gateway.security.ibm.com/deployment.image: ibmcom/ibm-application-gateway:21.12.0
+    ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:22.07.0
     ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
     ibm-application-gateway.security.ibm.com/service.port: "30441"
 spec:
@@ -131,7 +131,7 @@ spec:
     spec:
       containers:
       - name: test
-        image: ibmcom/ibm-application-gateway-demo-resource-server:21.12.0
+        image: icr.io/ibmappgateway/ibm-application-gateway-demo-resource-server:22.07.0
         imagePullPolicy: IfNotPresent
 ```
 

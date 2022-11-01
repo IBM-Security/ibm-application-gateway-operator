@@ -8,12 +8,12 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security
     certified: "false"
-    containerImage: ibmcom/ibm-application-gateway-operator:--version--
+    containerImage: icr.io/ibmappgateway/ibm-application-gateway-operator:--version--
     createdAt: --date--
     description: The IBM Application Gateway operator manages the lifecycle of IBM Application Gateway containers.
     repository: https://github.com/IBM-Security/ibm-application-gateway-operator
     support: IBM
-    "olm.properties": '[{"type": "olm.maxOpenShiftVersion", "value": "4.9"}]'
+    "olm.properties": '[{"type": "olm.maxOpenShiftVersion", "value": "4.11"}]'
   name: ibm-application-gateway-operator.v0000.0000.0000
   namespace: placeholder
 spec:
@@ -54,7 +54,7 @@ spec:
     type: AllNamespaces
   relatedImages:
     - name: ibm-application-gateway-operator
-      image: ibmcom/ibm-application-gateway-operator:--version--
+      image: icr.io/ibmappgateway/ibm-application-gateway-operator:--version--
   keywords:
   - IBM
   - Security

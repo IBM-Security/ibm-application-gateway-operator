@@ -43,12 +43,12 @@ spec:
   replicas: 1
   deployment:
     serviceAccountName: ibm-application-gateway
-    image: ibmcom/ibm-application-gateway:21.12.0
+    image: icr.io/ibmappgateway/ibm-application-gateway:22.07.0
     imagePullPolicy: IfNotPresent 
   configuration:
     - type: literal 
       value: |
-        version: "21.12"
+        version: "22.07"
         resource_servers:
           - path: "/static"
             connection_type: "ssl"

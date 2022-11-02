@@ -32,7 +32,14 @@ EOT
 
 yum -y install make git rsync zip
 
-yum module -y install go-toolset
+#
+# The build scripts assume go 1.17, so we want to install the latest 
+# 1.17 available.
+#
+
+go_toolset_version=$(yum list --showduplicates go-toolset | grep 1.17 | awk '{ print $2 }' | sort -Vr | head -n 1)
+
+yum -y install go-toolset-${go_toolset_version}
 
 #
 # Install kubectl.
@@ -172,7 +179,7 @@ make() {
 help
 
 export VERSION=latest
-export IMAGE_TAG_BASE=docker.io/isamdev/ibm-application-gateway-operator-dev
+export IMAGE_TAG_BASE=icr.io/ibmappgateway/ibm-application-gateway-operator
 
 EOF
 

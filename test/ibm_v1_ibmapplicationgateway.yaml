@@ -7,14 +7,14 @@ metadata:
 spec:
   replicas: 1
   deployment:
-    image: ibmcom/ibm-application-gateway:21.12
+    image: icr.io/ibmappgateway/ibm-application-gateway:22.07
   configuration:
 #      - type: configmap
 #        name: test-config
 #        dataKey: config
     - type: literal 
       value: |
-        version: "21.12"
+        version: "22.07"
 
         server:
           local_applications:

@@ -144,7 +144,7 @@ At this point the Operator Lifecycle Manager has been installed into the Kuberne
 The IBM Application Gateway can be configured to act as an OIDC relying party for authentication. A client must be registered with the OpenID provider (OP) such that it can be referenced in the configuration. For example:
 
 ```yaml
-version: "21.12"
+version: "22.07"
   identity:
     oidc:
       client_id: 11111111-2222-3333-4444-5a5a5a5a5a5a5a
@@ -357,7 +357,7 @@ spec:
   replicas: 3
   deployment:
     serviceAccountName: ibm-application-gateway
-    image: ibmcom/ibm-application-gateway:21.12.0 
+    image: icr.io/ibmappgateway/ibm-application-gateway:22.07.0 
     imagePullPolicy: IfNotPresent 
   configuration:
     - type: configmap
@@ -365,7 +365,7 @@ spec:
       dataKey: config
     - type: literal 
       value: |
-        version: "21.12"
+        version: "22.07"
         resource_servers:
           - path: /app
             connection_type: tcp
@@ -429,7 +429,7 @@ spec:
   configuration:
     - type: literal
       value: |
-        version: "21.12"
+        version: "22.07"
 
         resource_servers:
           - path: /app
@@ -764,7 +764,7 @@ spec:
           value: "Token 2432347234af7897c9877d908098"
     - type: literal
       value: |
-        version: "21.12"
+        version: "22.07"
 
         resource_servers:
           - path: /app
@@ -783,7 +783,7 @@ metadata:
   name: iag-config
 data:
   config: |
-    version: "21.12"
+    version: "22.07"
 
     server:
       local_applications:
@@ -802,7 +802,7 @@ data:
 The web config (https://raw.github.ibm.com/iag/master/config.yaml) is defined as
 
 ```yaml
-version: "21.12"
+version: "22.07"
 
 resource_servers:
   - path: /app3
@@ -818,7 +818,7 @@ The different sources of configuration are processed in the order they are defin
 apiVersion: v1
 data:
   config.yaml: |
-    version: "21.12"
+    version: "22.07"
 
       resource_servers:
         - path: /app
@@ -899,7 +899,7 @@ Deployment annotations define how the IBM Application Gateway sidecar container 
 Example:
 
 ```yaml
-ibm-application-gateway.security.ibm.com/deployment.image: ibmcom/ibm-application-gateway:21.12.0
+ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:22.07.0
 ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
 ```
 
@@ -1027,7 +1027,7 @@ data:
         cred_viewer:
           enable_html: false
           path_segment: creds
-    version: "21.12"
+    version: "22.07"
 kind: ConfigMap
 metadata:
   creationTimestamp: "2020-06-10T06:05:47Z"
@@ -1113,7 +1113,7 @@ metadata:
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.name: Authorization
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.value: githubsecret
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.secretKey: value
-    ibm-application-gateway.security.ibm.com/deployment.image: ibmcom/ibm-application-gateway:21.12.0
+    ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:22.07.0
     ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
     ibm-application-gateway.security.ibm.com/service.port: "30441"
 spec:

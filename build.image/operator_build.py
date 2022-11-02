@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 """
 Copyright contributors to the IBM Application Gateway Operator project
@@ -93,7 +93,7 @@ def build_command(args):
     # Now we can execute the build command.
     execute([
         "docker", "build", 
-        "--force-rm", 
+        "--force-rm", "--no-cache",
         "-t", "{0}:latest".format(image_name),
         os.path.dirname(os.path.realpath(__file__))
     ])
@@ -199,7 +199,7 @@ The following options are available as a part of this script:
 'create': Used to create a new container for a specific workspace.  When the 
           container is first started you will be dropped into a shell.  The
           container will stop once you exit from the shell.  For example:
-            'operator_build.py create --container build.operator \
+            'operator_build.py create --container build.operator \\
                 --source /Users/dev/github/ibm-application-gateway-operator'
 'start':  Used to start a build container which is currently stopped.  You will
           be dropped into a shell in the build environment allowing you to 

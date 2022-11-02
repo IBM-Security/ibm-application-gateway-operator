@@ -35,8 +35,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# ibmcom/ibm-application-gateway-operator-bundle:$VERSION and ibmcom/ibm-application-gateway-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= ibmcom/ibm-application-gateway-operator
+# icr.io/ibmappgateway/ibm-application-gateway-operator-bundle:$VERSION and icr.io/ibmappgateway/ibm-application-gateway-operator-catalog:$VERSION.
+IMAGE_TAG_BASE ?= icr.io/ibmappgateway/ibm-application-gateway-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -176,7 +176,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	sed -i '/      version: v1/ r $(CSV_FILE).annotations' $(CSV_FILE)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | sed "s|0000.0000.0000|$(SEMANTIC_VERSION)|g" | sed "s|--version--|$(VERSION)|g" | sed "s|--date--|`date`|g" | operator-sdk generate bundle -q --overwrite --version $(SEMANTIC_VERSION) $(BUNDLE_METADATA_OPTS)
-	echo "  com.redhat.openshift.versions: \"v4.7\"" >> bundle/metadata/annotations.yaml
+	echo "  com.redhat.openshift.versions: \"v4.6-v4.11\"" >> bundle/metadata/annotations.yaml
 	operator-sdk bundle validate ./bundle
 
 .PHONY: bundle-build

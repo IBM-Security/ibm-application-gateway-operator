@@ -3,11 +3,11 @@
 
 # This workflow will be triggered whenever a push occurs (e.g. when a pull 
 # request is merged).  The action will build and publish the IAG
-# operator.  The docker images will be published to docker hub.  A release
-# build is created whenever a new tag is created.  The name of the tag should
-# be of the format v<year>.<month>.<fix> (with no leading 0's), for example:
-# v21.7.0.  The tag is also used as the tag for the generated docker image, 
-# without the leading 'v'.
+# operator.  The docker images will be published to IBM Cloud Container 
+# Registry.  A release build is created whenever a new tag is created.  The 
+# name of the tag should be of the format v<year>.<month>.<fix> (with no 
+# leading 0's), for example: v21.7.0.  The tag is also used as the tag for 
+# the generated docker image, without the leading 'v'.
 
 name: ibm-application-gateway-operator-publish
 
@@ -80,12 +80,13 @@ jobs:
           mkdir -p ${HOME}/.local/bin
           mv operator-sdk_${OS}_${ARCH} ${HOME}/.local/bin/operator-sdk
 
-      # Perform a docker login to docker hub.
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
+      # Perform a docker login to IBM Cloud Container Registry (icr.io)
+      - name: Login to IBM Cloud Container Registry
+        uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERIO_USER    }}
-          password: ${{ secrets.DOCKERIO_API_KEY }}
+          registry: icr.io
+          username: ${{ secrets.ICR_USER    }}
+          password: ${{ secrets.ICR_API_KEY }}
 
       # Perform the build.
       - name: Perform the build.

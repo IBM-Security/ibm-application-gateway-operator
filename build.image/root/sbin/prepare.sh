@@ -6,6 +6,35 @@
 
 set -e
 
+# We have an issue where the build sometimes fails due to network issues.  The
+# simple fix for this is to retry the failed commands.  This function will
+# retry the specified command until it succeeds, or exceeds 5 retry attempts.
+retry_command()
+{
+    set +e
+
+    failed=true
+    attempt=1
+
+    while [ $failed = "true" ] ; do
+        $*
+
+        if [ $? -eq 0 ] ; then
+            failed=false
+        elif [ $attempt -lt 5 ] ; then
+            echo "Error> command failed (trying again)....."
+            sleep 5
+
+            attempt=`expr $attempt + 1`
+        else
+            echo "Error> command failed......"
+            exit 1
+        fi
+    done
+
+    set -e
+}
+
 #
 # Enable install of RPMs from the CentOS-8 repository.
 #
@@ -30,7 +59,7 @@ EOT
 # Install the pre-requisite RedHat RPMs
 #
 
-yum -y install make git rsync zip
+retry_command yum -y install make git rsync zip
 
 #
 # The build scripts assume go 1.17, so we want to install the latest 
@@ -39,7 +68,7 @@ yum -y install make git rsync zip
 
 go_toolset_version=$(yum list --showduplicates go-toolset | grep 1.17 | awk '{ print $2 }' | sort -Vr | head -n 1)
 
-yum -y install go-toolset-${go_toolset_version}
+retry_command yum -y install go-toolset-${go_toolset_version}
 
 #
 # Install kubectl.
@@ -55,7 +84,7 @@ repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
 
-yum install -y kubectl
+retry_command yum install -y kubectl
 
 mkdir -p /root/.kube
 
@@ -65,7 +94,7 @@ mkdir -p /root/.kube
 
 dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
 
-dnf -y install docker-ce 
+retry_command dnf -y install docker-ce 
 
 #
 # Install the operator SDK.  This code comes directly from the Operator SDK
@@ -77,7 +106,7 @@ export ARCH=amd64
 export OS=$(uname | awk '{print tolower($0)}')
 export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.15.0
 
-curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+retry_command curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
 
 #
 # Verify that the operator has been downloaded OK.

@@ -62,11 +62,11 @@ EOT
 retry_command yum -y install make git rsync zip
 
 #
-# The build scripts assume go 1.17, so we want to install the latest 
-# 1.17 available.
+# The build scripts assume go 1.19, so we want to install the latest 
+# 1.19 available.
 #
 
-go_toolset_version=$(yum list --showduplicates go-toolset | grep 1.17 | awk '{ print $2 }' | sort -Vr | head -n 1)
+go_toolset_version=$(yum list --showduplicates go-toolset | grep 1.19 | awk '{ print $2 }' | sort -Vr | head -n 1)
 
 retry_command yum -y install go-toolset-${go_toolset_version}
 

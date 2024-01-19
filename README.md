@@ -529,25 +529,19 @@ data:
 
 ###### Web Configuration Updates
 
-Changes to either literal or config map configuration sources will result in the IBM Application Gateway operator being notified and the running instances being updated as required. The web source differs in that there is no listener that is notified or checks for changes to the remote configuration. As such if the external web configuration is updated there are 2 manual steps that must be run in Kubernetes for the changes to take effect.
+Changes to either literal or config map configuration sources will result in the IBM Application Gateway operator being notified and the running instances being updated as required. The web source differs in that there is no listener that is notified or checks for changes to the remote configuration. As such if the external web configuration is updated a manual step must be run in Kubernetes for the changes to take effect.
 
-First, perform a manual update of any running deployments that reference the external web config:
-
-```shell
-kubectl rollout restart deployment.apps/<iag-instance>
-```
-
-Next, optionally update the revision history to add the change cause:
+Update the revision history of the `IBMApplicationGateway` custom resource to add the cause of the change:
 
 ```shell
-kubectl edit deployment.apps/<iag-instance>
+kubectl edit IBMApplicationGateway/<iag-instance>
 ```
 
 Set the change cause annotation and save:
 
 ```yaml
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: ibm.com/v1
+kind: IBMApplicationGateway
 metadata:
   annotations:
     kubernetes.io/change-cause: External web config changed.
@@ -1173,18 +1167,20 @@ A simple hello world example which shows how to protect an application using the
 
 There are various ways to try and locate any issues with the IBM Application Gateway operator, or the deployment instances that are created for custom resources.
 
+Please note that the operator pod mentioned in the following commands may not be installed in the current Kubernetes namespace and might be installed in an operator specific Kubernetes namespace.
+
 1. Operator logs
 
 ```shell
-kubectl logs --follow pod/ibm-application-gateway-operator-7ff6bcffb8-m25g5
+kubectl logs --follow pod/<ibm-application-gateway-operator-pod> -c manager -n <namespace>
 ```
 
-Look for any errors or log entries that define what has happened.
+Look for any errors or log entries that define what has happened.  
 
 2. IBM Application Gateway instance logs
 
 ```shell
-kubectl logs --follow pod/iag-instance3-75bf746b7c-kmzfx
+kubectl logs --follow pod/<iag-instance-pod>
 ```
 
 Look for any errors or log entries that define what has happened. 
@@ -1192,7 +1188,7 @@ Look for any errors or log entries that define what has happened.
 3. Check the operator deployment
 
 ```shell
-kubectl get deployment.apps/ibm-application-gateway-operator -o yaml
+kubectl get deployment.apps/ibm-application-gateway-operator-controller-manager -o yaml -n <namespace>
 ```
 
 The status section may contain event data showing errors.
@@ -1200,7 +1196,7 @@ The status section may contain event data showing errors.
 4. Check the operator pod
 
 ```shell
-kubectl get pod/ibm-application-gateway-operator-5cd8589ff9-h9jrc -o yaml
+kubectl get pod/<ibm-application-gateway-operator-pod> -o yaml -n <namespace>
 ```
 
 The status section may contain event data showing errors.
@@ -1208,7 +1204,7 @@ The status section may contain event data showing errors.
 5. Check the custom object deployment
 
 ```shell
-kubectl get deployment.apps/iag-instance -o yaml
+kubectl get deployment.apps/<iag-instance> -o yaml
 ```
 
 The status section may contain event data showing errors.
@@ -1216,7 +1212,7 @@ The status section may contain event data showing errors.
 6. Check the custom object pod
 
 ```shell
-kubectl get pod/iag-instance3-75bf746b7c-kmzfx -o yaml
+kubectl get pod/<iag-instance-pod> -o yaml
 ```
 
 The status section may contain event data showing errors.
@@ -1224,7 +1220,7 @@ The status section may contain event data showing errors.
 7. Check the master merged config map
 
 ```shell
-kubectl get configmaps/iag-instance-config-iag-internal-generated -o yaml
+kubectl get configmaps/<iag-instance-config-map> -o yaml
 ```
 
 Check that the generated configuration is as expected.

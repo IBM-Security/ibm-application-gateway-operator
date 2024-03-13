@@ -14,5 +14,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: image-registry.openshift-image-registry.svc:5000/openshift/ibm-application-gateway-operator
-  newTag: 24.3.0
+  newName: docker.io/isamdev/ibm-application-gateway-operator-dev
+  newTag: latest

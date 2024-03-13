@@ -93,8 +93,8 @@ func main() {
 	mgr.GetWebhookServer().Register("/mutate-v1-iag",
 		&webhook.Admission{
 			Handler: &controllers.IBMApplicationGatewayWebhook{
-                            Client: mgr.GetClient(),
-                        },
+				Client: mgr.GetClient(),
+			},
 		})
 
 	setupLog.Info("starting manager")

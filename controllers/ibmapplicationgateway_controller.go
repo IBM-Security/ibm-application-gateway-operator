@@ -10,13 +10,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-        "fmt"
+	"fmt"
 	"gopkg.in/yaml.v2"
-        "net/http"
-        "io/ioutil"
-        "reflect"
-        "strings"
-        "time"
+	"io/ioutil"
+	"net/http"
+	"reflect"
+	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,43 +24,43 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	ctrl   "sigs.k8s.io/controller-runtime"
-	logf   "sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/controller-runtime"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	ibmv1  "github.com/ibm-security/ibm-application-gateway-operator/api/v1"
+	ibmv1 "github.com/ibm-security/ibm-application-gateway-operator/api/v1"
 )
 
 type IAGHeader struct {
-	Name string
-	Type string
-	Value string
+	Name      string
+	Type      string
+	Value     string
 	SecretKey string
 }
 
 type IAGOidcReg struct {
 	DiscoveryEndpoint string
-	Secret string
-	PostData []IAGPostData
+	Secret            string
+	PostData          []IAGPostData
 }
 
 type IAGPostData struct {
-	Name string
-	Value string
+	Name   string
+	Value  string
 	Values []string
 }
 
 type DiscoveryData struct {
 	Registration_endpoint string
-	Token_endpoint string
+	Token_endpoint        string
 }
 
 type AccessTokenStruct struct {
@@ -68,15 +68,15 @@ type AccessTokenStruct struct {
 }
 
 type ClientDataStruct struct {
-	Client_id string
+	Client_id     string
 	Client_secret string
 }
 
 const (
-	configMapLabelKey = "ibm-application-gateway.operator.security.ibm.com/configMap"
-	configMapMasterKey = "config.yaml"
+	configMapLabelKey     = "ibm-application-gateway.operator.security.ibm.com/configMap"
+	configMapMasterKey    = "config.yaml"
 	configVersionLabelKey = "ibm-application-gateway.operator.security.ibm.com/configVersion"
-	langLabelKey = "ibm-application-gateway.operator.security.ibm.com/lang"
+	langLabelKey          = "ibm-application-gateway.operator.security.ibm.com/lang"
 )
 
 // Logger
@@ -88,9 +88,9 @@ var _ reconcile.Reconciler = &IBMApplicationGatewayReconciler{}
 // IBMApplicationGatewayReconciler reconciles a IBMApplicationGateway object
 type IBMApplicationGatewayReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
+	Scheme *runtime.Scheme
 	record.EventRecorder
-        Leader string
+	Leader string
 }
 
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
@@ -119,7 +119,7 @@ func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, request
 		// that an IBMApplicationGateway object is referencing
 		configMap := &corev1.ConfigMap{}
 		err = r.Client.Get(context.TODO(), request.NamespacedName, configMap)
-	
+
 		if err == nil {
 			// Its a config map, check to see if we need to do anything
 			err = handleConfigMapChange(r, instance, request)
@@ -141,14 +141,14 @@ func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, request
 			return ctrl.Result{}, err
 		}
 	} else {
-        reqLogger.Info("Reconciling IBMApplicationGateway")
+		reqLogger.Info("Reconciling IBMApplicationGateway")
 
 		// Its an IBMApplicationGateway object that has changed
 		// First check to see if the deployment exists for this custom resource
 		dply := &appsv1.Deployment{}
 		errD := r.Client.Get(context.TODO(), request.NamespacedName, dply)
 
-		// Get the current config map version (update if necessary)		
+		// Get the current config map version (update if necessary)
 		cmVersion := ""
 		cmName := ""
 		cmName, cmVersion, err = createNewConfigMap(r, instance, request, dply)
@@ -247,7 +247,7 @@ func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, request
 					// Set the new env
 					dply.Spec.Template.Spec.Containers[0].Env = []corev1.EnvVar{
 						{
-							Name: "LANG",
+							Name:  "LANG",
 							Value: instance.Spec.Deployment.Lang,
 						},
 					}
@@ -264,7 +264,7 @@ func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, request
 
 					// Update was successful
 					return ctrl.Result{}, nil
-				} 
+				}
 			}
 		}
 	}
@@ -274,53 +274,53 @@ func (r *IBMApplicationGatewayReconciler) Reconcile(ctx context.Context, request
 
 /*
  * Function will handle a config map change. It will loop through all the deployed IAG custom objects
- * to see if they reference the modified config map. If so then a noop update will be made to that 
+ * to see if they reference the modified config map. If so then a noop update will be made to that
  * object which will in turn fire a reconcile change for that object. This will result in the configuration
  * being checked and possibly updating the IAG pods if required.
  */
 func handleConfigMapChange(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMApplicationGateway, request ctrl.Request) error {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 
-    // To help improve performance we ignore our operator 'leader' configmap as
-    // this is updated frequently and we know that it does not contain any
-    // IAG configuration data.
+	// To help improve performance we ignore our operator 'leader' configmap as
+	// this is updated frequently and we know that it does not contain any
+	// IAG configuration data.
 	if request.Name == r.Leader {
 		return nil
 	}
 
 	// Fetch the instances
 	instanceList := &ibmv1.IBMApplicationGatewayList{}
-	err := r.Client.List(context.TODO(), 
-	           	instanceList, 
-	           	&client.ListOptions{
-					Namespace: request.Namespace,
-				})
+	err := r.Client.List(context.TODO(),
+		instanceList,
+		&client.ListOptions{
+			Namespace: request.Namespace,
+		})
 
 	// Update (touch) any IBMApplicationGateway custom objects that use the changed config map
 	for _, inst := range instanceList.Items {
 		for _, entry := range inst.Spec.Configuration {
 			if entry.Type == "configmap" {
-				mapName := entry.Name 
+				mapName := entry.Name
 
 				if mapName == request.Name {
-				    reqLogger.Info("Handle configmap change : updating")
+					reqLogger.Info("Handle configmap change : updating")
 
 					iagNamespaceName := request.NamespacedName
-				    iagNamespaceName.Name = inst.Name
+					iagNamespaceName.Name = inst.Name
 
-				    err = r.Client.Get(context.TODO(), iagNamespaceName, instance)
-				    if err != nil {
-					    return err
+					err = r.Client.Get(context.TODO(), iagNamespaceName, instance)
+					if err != nil {
+						return err
 					}
 
 					err = r.Client.Status().Update(context.TODO(), instance)
 					if err != nil {
 						return err
 					}
-				}	
+				}
 			}
 		}
-	}		
+	}
 
 	return nil
 }
@@ -333,7 +333,7 @@ func getMergedConfig(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMAppl
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Merging IBMApplicationGateway config")
 
-	master := make(map[string]interface {})
+	master := make(map[string]interface{})
 	var err error
 
 	var oidcRegs []ibmv1.IBMApplicationGatewayConfiguration
@@ -385,7 +385,7 @@ func getMergedConfig(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMAppl
 				currHdr.Name = header.Name
 				currHdr.Type = header.Type
 				currHdr.Value = header.Value
-				currHdr.SecretKey = header.SecretKey 
+				currHdr.SecretKey = header.SecretKey
 
 				iagHeaders = append(iagHeaders, currHdr)
 			}
@@ -454,8 +454,8 @@ func getMergedConfig(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMAppl
 /*
  * Handle dynamic client registration and merge OIDC identity into the current master config.
  */
-func handleOidcEntryMerge(rclient client.Client, entry IAGOidcReg, 
-	                      ns string, master map[string]interface {}) (map[string]interface {}, error) {
+func handleOidcEntryMerge(rclient client.Client, entry IAGOidcReg,
+	ns string, master map[string]interface{}) (map[string]interface{}, error) {
 
 	logger := log.WithName("handleOidcEntryMerge")
 	logger.Info("Entry")
@@ -482,30 +482,30 @@ func handleOidcEntryMerge(rclient client.Client, entry IAGOidcReg,
 
 		// Make sure the type is correct
 		switch v := master["identity"].(type) {
-			case map[interface {}]interface {}:
-				masterIdentity := convertInterfaceKeysToString(v)
-				if masterIdentity["oidc"] != nil {
+		case map[interface{}]interface{}:
+			masterIdentity := convertInterfaceKeysToString(v)
+			if masterIdentity["oidc"] != nil {
 
-					// Make sure the type is correct
-					switch v2 := masterIdentity["oidc"].(type) {
-						case map[interface {}]interface {}:
-							masterOidc := convertInterfaceKeysToString(v2)
+				// Make sure the type is correct
+				switch v2 := masterIdentity["oidc"].(type) {
+				case map[interface{}]interface{}:
+					masterOidc := convertInterfaceKeysToString(v2)
 
-							// Update the values
-							masterOidc["discovery_endpoint"] = entry.DiscoveryEndpoint
-							masterOidc["client_id"] = clientIdStr
-							masterOidc["client_secret"] = clientSecretStr
+					// Update the values
+					masterOidc["discovery_endpoint"] = entry.DiscoveryEndpoint
+					masterOidc["client_id"] = clientIdStr
+					masterOidc["client_secret"] = clientSecretStr
 
-							// Set the master maps
-							masterIdentity["oidc"] = masterOidc
-							master["identity"] = masterIdentity
+					// Set the master maps
+					masterIdentity["oidc"] = masterOidc
+					master["identity"] = masterIdentity
 
-							// Flag as handled
-							oidcUpdated = true
-					}
+					// Flag as handled
+					oidcUpdated = true
 				}
+			}
 		}
-	} 
+	}
 
 	// If its not already handled, add the OIDC identity
 	if !oidcUpdated {
@@ -517,10 +517,10 @@ func handleOidcEntryMerge(rclient client.Client, entry IAGOidcReg,
 		//     client_secret: secret:<secret>/client_secret
 
 		var oidcStr = "identity:\n" +
-              "  oidc:\n" +
-              "    discovery_endpoint: " + entry.DiscoveryEndpoint + "\n" +
-              "    client_id: " + clientIdStr + "\n" +
-              "    client_secret: " + clientSecretStr
+			"  oidc:\n" +
+			"    discovery_endpoint: " + entry.DiscoveryEndpoint + "\n" +
+			"    client_id: " + clientIdStr + "\n" +
+			"    client_secret: " + clientSecretStr
 
 		master, err = handleYamlDataMerge(oidcStr, master)
 		if err != nil {
@@ -536,8 +536,8 @@ func handleOidcEntryMerge(rclient client.Client, entry IAGOidcReg,
 /*
  * Merge a web config source into the current master config.
  */
-func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName, 
-	                     webUrl string, headers []IAGHeader, master map[string]interface {}) (map[string]interface {}, error) {
+func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
+	webUrl string, headers []IAGHeader, master map[string]interface{}) (map[string]interface{}, error) {
 
 	if webUrl == "" {
 		return nil, fmt.Errorf("Configuration web entry is missing the Url.")
@@ -561,34 +561,34 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
 		}
 
 		switch header.Type {
-			case "literal":
-				log.V(1).Info("Adding literal header : " + header.Name)
-				req.Header.Add(header.Name, header.Value)
-			case "secret":
-				// Retrieve the header value from the secret
-				secretNamespaceName := nsn
-				secretNamespaceName.Name = header.Value
+		case "literal":
+			log.V(1).Info("Adding literal header : " + header.Name)
+			req.Header.Add(header.Name, header.Value)
+		case "secret":
+			// Retrieve the header value from the secret
+			secretNamespaceName := nsn
+			secretNamespaceName.Name = header.Value
 
-				secret := &corev1.Secret{}
-				err = rclient.Get(context.TODO(), secretNamespaceName, secret)
-				if err != nil {
-					log.Error(err, "Failed to retrieve the authorization secret : " + header.Value)
-					return nil, err
+			secret := &corev1.Secret{}
+			err = rclient.Get(context.TODO(), secretNamespaceName, secret)
+			if err != nil {
+				log.Error(err, "Failed to retrieve the authorization secret : "+header.Value)
+				return nil, err
+			} else {
+
+				// Extract the raw secret. k8s automatically decodes it from base64
+				hdrValue := string(secret.Data[header.SecretKey])
+
+				if hdrValue != "" {
+					log.V(1).Info("Adding secret header : " + header.Name)
+					req.Header.Add(header.Name, hdrValue)
 				} else {
-
-					// Extract the raw secret. k8s automatically decodes it from base64
-					hdrValue := string(secret.Data[header.SecretKey])
-
-					if hdrValue != "" {
-						log.V(1).Info("Adding secret header : " + header.Name)
-						req.Header.Add(header.Name, hdrValue)
-					} else {
-						return nil, fmt.Errorf("The authorization secret : " + header.Value + " does not have the required key : " + header.SecretKey)
-					}
+					return nil, fmt.Errorf("The authorization secret : " + header.Value + " does not have the required key : " + header.SecretKey)
 				}
-			default:
-				// Invalid
-				return nil, fmt.Errorf("Configuration web header entry has an invalid type : " + header.Type)
+			}
+		default:
+			// Invalid
+			return nil, fmt.Errorf("Configuration web header entry has an invalid type : " + header.Type)
 		}
 	}
 
@@ -597,7 +597,7 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
 
 	// Handle the response
 	if err != nil {
-		log.Error(err, "Failed to get web config : " + webUrl)
+		log.Error(err, "Failed to get web config : "+webUrl)
 		return nil, err
 	} else {
 		defer resp.Body.Close()
@@ -621,7 +621,7 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
 			log.Error(err, "HTTP Response Status:", fmt.Sprintf("%v", resp.StatusCode), fmt.Sprintf("%v", http.StatusText(resp.StatusCode)))
 			return nil, err
 		}
-	}	
+	}
 
 	return master, nil
 }
@@ -630,7 +630,7 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
  * This function will handle the conversion of new config data to a yaml map
  * and then merge that map with the existing master config.
  */
-func handleYamlDataMerge(newConfig string, masterConfig map[string]interface {}) (map[string]interface {}, error) {
+func handleYamlDataMerge(newConfig string, masterConfig map[string]interface{}) (map[string]interface{}, error) {
 
 	// Unmarshal the new config data string into a Map
 	var currentYaml map[string]interface{}
@@ -653,9 +653,9 @@ func handleYamlDataMerge(newConfig string, masterConfig map[string]interface {})
 /*
  * Function converts a map of interface --> interface to a map of string --> interface
  */
-func convertInterfaceKeysToString(inputMap map[interface {}]interface {}) map[string]interface{} {
+func convertInterfaceKeysToString(inputMap map[interface{}]interface{}) map[string]interface{} {
 
-	retVal := make(map[string]interface {})
+	retVal := make(map[string]interface{})
 
 	for key, value := range inputMap {
 		strKey := fmt.Sprintf("%v", key)
@@ -671,37 +671,37 @@ func convertInterfaceKeysToString(inputMap map[interface {}]interface {}) map[st
  * This almost mirrors validateStringKeysFromInterface but golang doesn't seem to allow
  * a generic arg that can be casted.
  */
-func validateStringKeysFromString(inputMap map[string]interface {}) map[string]interface{} {
+func validateStringKeysFromString(inputMap map[string]interface{}) map[string]interface{} {
 	log.V(1).Info("convertMaster")
 
-	retVal := make(map[string]interface {})
+	retVal := make(map[string]interface{})
 
 	for key, value := range inputMap {
 		switch value2 := value.(type) {
-			case map[string]interface {}:
-				log.V(1).Info("String : " + key)
-				retVal[key] = validateStringKeysFromString(value2)
-	        case map[interface{}]interface{}:
-	        	log.V(1).Info("interface : " + key)
-	            retVal[fmt.Sprint(key)] = validateStringKeysFromInterface(value2)
-	        case []interface {}:
-	        	// Handle array of interfaces
-	        	var arry []interface {}
-	        	for _, elem := range value2 {
-	        		switch value3 := elem.(type) {
-	        			case map[string]interface {}:
-							arry = append(arry, validateStringKeysFromString(value3))
-						case map[interface{}]interface{}:
-							arry = append(arry, validateStringKeysFromInterface(value3))
-						default:
-							arry = append(arry, value3)
-	        		}
-	        	}
+		case map[string]interface{}:
+			log.V(1).Info("String : " + key)
+			retVal[key] = validateStringKeysFromString(value2)
+		case map[interface{}]interface{}:
+			log.V(1).Info("interface : " + key)
+			retVal[fmt.Sprint(key)] = validateStringKeysFromInterface(value2)
+		case []interface{}:
+			// Handle array of interfaces
+			var arry []interface{}
+			for _, elem := range value2 {
+				switch value3 := elem.(type) {
+				case map[string]interface{}:
+					arry = append(arry, validateStringKeysFromString(value3))
+				case map[interface{}]interface{}:
+					arry = append(arry, validateStringKeysFromInterface(value3))
+				default:
+					arry = append(arry, value3)
+				}
+			}
 
-	        	retVal[fmt.Sprint(key)] = arry
-	        default:
-	            retVal[fmt.Sprint(key)] = value
-        }
+			retVal[fmt.Sprint(key)] = arry
+		default:
+			retVal[fmt.Sprint(key)] = value
+		}
 	}
 
 	return retVal
@@ -712,35 +712,35 @@ func validateStringKeysFromString(inputMap map[string]interface {}) map[string]i
  * This almost mirrors validateStringKeysFromString but golang doesn't seem to allow
  * a generic arg that can be casted.
  */
-func validateStringKeysFromInterface(inputMap map[interface {}]interface {}) map[string]interface{} {
+func validateStringKeysFromInterface(inputMap map[interface{}]interface{}) map[string]interface{} {
 	log.V(1).Info("convertInterfaceToString")
 
-	retVal := make(map[string]interface {})
+	retVal := make(map[string]interface{})
 
 	for key, value := range inputMap {
 		switch value2 := value.(type) {
-	        case map[interface{}]interface{}:
-	            retVal[fmt.Sprint(key)] = validateStringKeysFromInterface(value2)
-            case map[string]interface {}:
-				retVal[fmt.Sprint(key)] = validateStringKeysFromString(value2)
-			case []interface {}:
-	        	// Handle array of interfaces
-	        	var arry []interface {}
-	        	for _, elem := range value2 {
-	        		switch value3 := elem.(type) {
-	        			case map[string]interface {}:
-							arry = append(arry, validateStringKeysFromString(value3))
-						case map[interface{}]interface{}:
-							arry = append(arry, validateStringKeysFromInterface(value3))
-						default:
-							arry = append(arry, value3)
-	        		}
-	        	}
+		case map[interface{}]interface{}:
+			retVal[fmt.Sprint(key)] = validateStringKeysFromInterface(value2)
+		case map[string]interface{}:
+			retVal[fmt.Sprint(key)] = validateStringKeysFromString(value2)
+		case []interface{}:
+			// Handle array of interfaces
+			var arry []interface{}
+			for _, elem := range value2 {
+				switch value3 := elem.(type) {
+				case map[string]interface{}:
+					arry = append(arry, validateStringKeysFromString(value3))
+				case map[interface{}]interface{}:
+					arry = append(arry, validateStringKeysFromInterface(value3))
+				default:
+					arry = append(arry, value3)
+				}
+			}
 
-	        	retVal[fmt.Sprint(key)] = arry
-	        default:
-	            retVal[fmt.Sprint(key)] = value
-        }
+			retVal[fmt.Sprint(key)] = arry
+		default:
+			retVal[fmt.Sprint(key)] = value
+		}
 	}
 
 	return retVal
@@ -750,48 +750,48 @@ func validateStringKeysFromInterface(inputMap map[interface {}]interface {}) map
  * Function merges to maps to a single map.
  * Entries in the 2nd map will overwrite entries in the 1st map
  */
-func mergeMapsRecursive(inputMap1 map[string]interface {}, inputMap2 map[string]interface {}) map[string]interface{} {
+func mergeMapsRecursive(inputMap1 map[string]interface{}, inputMap2 map[string]interface{}) map[string]interface{} {
 
 	var retVal = inputMap1
 
 	for key, value := range inputMap2 {
 		if !reflect.DeepEqual(inputMap1[key], inputMap2[key]) {
 			switch v := value.(type) {
-				case map[interface {}]interface {}:
-				    switch v2 := inputMap1[key].(type) {
-				    	case map[interface {}]interface {}:
-				    		retVal[key] = mergeMapsRecursive(convertInterfaceKeysToString(v2), convertInterfaceKeysToString(v))
-				    	default:
-				    		retVal[key] = inputMap2[key]
-				    }
-				case []interface {}:
-					// Its an array of entries
-					// All we do here is to add all new elements to the existing elements
-					switch v2 := inputMap1[key].(type) {
-				    	case []interface {}:
-
-				    		// New container for all elements
-				    		var allVals []interface{}
-
-				    		// Add the existing elements
-				    		for _, element := range v {
-				                allVals = append(allVals, element)
-				            }
-
-				            // Add the new elements
-				    		for _, element := range v2 {
-				                allVals = append(allVals, element)
-				            }
-
-				    		// Set the new array containing both
-				    		retVal[key] = allVals
-				    	default:
-				    		// Not both arrays. This is not valid. Just set as 2nd value
-				    		retVal[key] = inputMap2[key]
-				    }
-
+			case map[interface{}]interface{}:
+				switch v2 := inputMap1[key].(type) {
+				case map[interface{}]interface{}:
+					retVal[key] = mergeMapsRecursive(convertInterfaceKeysToString(v2), convertInterfaceKeysToString(v))
 				default:
-				    retVal[key] = inputMap2[key]
+					retVal[key] = inputMap2[key]
+				}
+			case []interface{}:
+				// Its an array of entries
+				// All we do here is to add all new elements to the existing elements
+				switch v2 := inputMap1[key].(type) {
+				case []interface{}:
+
+					// New container for all elements
+					var allVals []interface{}
+
+					// Add the existing elements
+					for _, element := range v {
+						allVals = append(allVals, element)
+					}
+
+					// Add the new elements
+					for _, element := range v2 {
+						allVals = append(allVals, element)
+					}
+
+					// Set the new array containing both
+					retVal[key] = allVals
+				default:
+					// Not both arrays. This is not valid. Just set as 2nd value
+					retVal[key] = inputMap2[key]
+				}
+
+			default:
+				retVal[key] = inputMap2[key]
 			}
 		} else {
 			retVal[key] = value
@@ -808,7 +808,7 @@ func createNewConfigMap(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMA
 	reqLogger := log.WithValues("Request.Namespace", "request.Namespace", "Request.Name", "request.Name")
 
 	// Check to see if the config has changed
-	newData, err := getMergedConfig(r, instance, request )
+	newData, err := getMergedConfig(r, instance, request)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get merged config.")
 		return "", "", err
@@ -870,7 +870,7 @@ func getCurrentConfigMap(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBM
 /*
  * Function creates a new deployment
  */
-func createNewDeployment(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMApplicationGateway, 
+func createNewDeployment(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMApplicationGateway,
 	request ctrl.Request, cmVersion string, cmName string) (string, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 
@@ -930,21 +930,21 @@ func newDeploymentForCR(cr *ibmv1.IBMApplicationGateway, cmVersion string, cmNam
 
 	// These are the template labels
 	labelsTemp := map[string]string{
-		"app":     cr.Name,
-		"version": "v0.1",
+		"app":                 cr.Name,
+		"version":             "v0.1",
 		configVersionLabelKey: cmVersion,
-		langLabelKey: lang,
-		configMapLabelKey: cmName,
+		langLabelKey:          lang,
+		configMapLabelKey:     cmName,
 	}
 
 	var imagePullPolicy corev1.PullPolicy
 	switch strings.ToLower(specPullPolicy) {
-		case "never":
-			imagePullPolicy = corev1.PullNever
-		case "always":
-			imagePullPolicy = corev1.PullAlways
-		default:
-			imagePullPolicy = corev1.PullIfNotPresent
+	case "never":
+		imagePullPolicy = corev1.PullNever
+	case "always":
+		imagePullPolicy = corev1.PullAlways
+	default:
+		imagePullPolicy = corev1.PullIfNotPresent
 	}
 
 	// Get the readiness settings
@@ -1006,10 +1006,31 @@ func newDeploymentForCR(cr *ibmv1.IBMApplicationGateway, cmVersion string, cmNam
 	// Get all of the secrets
 	var ipSecrets []corev1.LocalObjectReference
 	for _, secret := range imagePullSecrets {
-		secObj := corev1.LocalObjectReference {
+		secObj := corev1.LocalObjectReference{
 			Name: secret.Name,
 		}
 		ipSecrets = append(ipSecrets, secObj)
+	}
+
+	annotations := make(map[string]string)
+	ilmtConfig := cr.Spec.Deployment.LicenseAnnotation
+	if ilmtConfig == "production" {
+		annotations["productName"] = "IBM Application Gateway"
+		annotations["productId"] = "7c3292bae26f4f699486bc4b8d05166c"
+		annotations["productMetric"] = "PROCESSOR_VALUE_UNIT"
+		annotations["productChargedContainers"] = "All"
+	} else {
+		reqLogger.Info("Unknown License annotation provided, falling back to production")
+		annotations["productName"] = "IBM Application Gateway"
+		annotations["productId"] = "7c3292bae26f4f699486bc4b8d05166c"
+		annotations["productMetric"] = "PROCESSOR_VALUE_UNIT"
+		annotations["productChargedContainers"] = "All"
+	}
+	customAnnotations := cr.Spec.Deployment.CustomAnnotations
+	if customAnnotations != nil {
+		for _, e := range customAnnotations {
+			annotations[e.Key] = e.Value
+		}
 	}
 
 	// Create the new deployment
@@ -1022,18 +1043,19 @@ func newDeploymentForCR(cr *ibmv1.IBMApplicationGateway, cmVersion string, cmNam
 				*metav1.NewControllerRef(cr, ibmv1.GroupVersion.WithKind("IBMApplicationGateway")),
 			},
 		},
-		Spec: appsv1.DeploymentSpec {
+		Spec: appsv1.DeploymentSpec{
 			Replicas: &cr.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labelsSel,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labelsTemp,
+					Labels:      labelsTemp,
+					Annotations: annotations,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: serviceAccountName,
-					Volumes: []corev1.Volume {
+					Volumes: []corev1.Volume{
 						{
 							Name: "iag-config",
 							VolumeSource: corev1.VolumeSource{
@@ -1048,8 +1070,8 @@ func newDeploymentForCR(cr *ibmv1.IBMApplicationGateway, cmVersion string, cmNam
 					ImagePullSecrets: ipSecrets,
 					Containers: []corev1.Container{
 						{
-							Name:    podName,
-							Image:   imageName, // icr.io/ibmappgateway/ibm-application-gateway:19.12
+							Name:            podName,
+							Image:           imageName, // icr.io/ibmappgateway/ibm-application-gateway:19.12
 							ImagePullPolicy: imagePullPolicy,
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -1059,32 +1081,32 @@ func newDeploymentForCR(cr *ibmv1.IBMApplicationGateway, cmVersion string, cmNam
 							},
 							Env: []corev1.EnvVar{
 								{
-									Name: "LANG",
+									Name:  "LANG",
 									Value: lang,
 								},
 							},
-							ReadinessProbe: &corev1.Probe {
+							ReadinessProbe: &corev1.Probe{
 								InitialDelaySeconds: readinessInitDelay,
-								PeriodSeconds: readinessPeriod,
-								FailureThreshold: readinessFailureThres,
-								SuccessThreshold: readinessSuccessThres,
-								TimeoutSeconds: readinessTimeoutSeconds,
-								ProbeHandler: corev1.ProbeHandler {
-									Exec: &corev1.ExecAction {
+								PeriodSeconds:       readinessPeriod,
+								FailureThreshold:    readinessFailureThres,
+								SuccessThreshold:    readinessSuccessThres,
+								TimeoutSeconds:      readinessTimeoutSeconds,
+								ProbeHandler: corev1.ProbeHandler{
+									Exec: &corev1.ExecAction{
 										Command: []string{
 											readinessCmd,
 										},
 									},
 								},
 							},
-							LivenessProbe: &corev1.Probe {
+							LivenessProbe: &corev1.Probe{
 								InitialDelaySeconds: livenessInitDelay,
-								PeriodSeconds: livenessPeriod,
-								FailureThreshold: livenessFailureThres,
-								SuccessThreshold: livenessSuccessThres,
-								TimeoutSeconds: livenessTimeoutSeconds,
-								ProbeHandler: corev1.ProbeHandler {
-									Exec: &corev1.ExecAction {
+								PeriodSeconds:       livenessPeriod,
+								FailureThreshold:    livenessFailureThres,
+								SuccessThreshold:    livenessSuccessThres,
+								TimeoutSeconds:      livenessTimeoutSeconds,
+								ProbeHandler: corev1.ProbeHandler{
+									Exec: &corev1.ExecAction{
 										Command: []string{
 											livenessCmd,
 										},
@@ -1100,7 +1122,7 @@ func newDeploymentForCR(cr *ibmv1.IBMApplicationGateway, cmVersion string, cmNam
 }
 
 /*
- * Function creates a new master ConfigMap with the passed in data. 
+ * Function creates a new master ConfigMap with the passed in data.
  * Note that at this point the POD is not created in K8s. This is just a container.
  */
 func newConfigMap(cr *ibmv1.IBMApplicationGateway, newData string) *corev1.ConfigMap {
@@ -1120,9 +1142,9 @@ func getNewConfigMap(configMapName string, appName string, ns string, newData st
 	}
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:      configMapName,
-			Namespace: ns,
-			Labels:    labels,
+			GenerateName: configMapName,
+			Namespace:    ns,
+			Labels:       labels,
 		},
 		Data: map[string]string{
 			configMapMasterKey: newData,
@@ -1207,8 +1229,8 @@ func getAccessToken(endpoints *DiscoveryData, tokenRetrievalClientId string, tok
 /*
  * Function extracts the scopes from the postData into the required format.
  */
-func getScopes(entry *IAGOidcReg) (string) {
-	
+func getScopes(entry *IAGOidcReg) string {
+
 	reqLogger := log.WithName("getScopes")
 	reqLogger.Info("Entry")
 
@@ -1229,10 +1251,10 @@ func getScopes(entry *IAGOidcReg) (string) {
 				retVal += "\"" + strings.Trim(scope, " ") + "\""
 			}
 		}
-    }
+	}
 
-    reqLogger.Info("Exit")
-    return retVal
+	reqLogger.Info("Exit")
+	return retVal
 }
 
 /*
@@ -1246,7 +1268,7 @@ func registerOidcClient(endpoints *DiscoveryData, entry *IAGOidcReg, baUser stri
 	var retVal ClientDataStruct
 
 	// Add all of the post data key values
-	dataMap := make(map[string] interface {})
+	dataMap := make(map[string]interface{})
 	for _, dataEntry := range entry.PostData {
 
 		if dataEntry.Name == "" {
@@ -1254,18 +1276,18 @@ func registerOidcClient(endpoints *DiscoveryData, entry *IAGOidcReg, baUser stri
 		}
 
 		// First check if its a single value
-    	if dataEntry.Value != "" {
-    		dataMap[dataEntry.Name] = dataEntry.Value
-    	} else {
-    		// Must be an array of values
-    		if dataEntry.Values != nil {
+		if dataEntry.Value != "" {
+			dataMap[dataEntry.Name] = dataEntry.Value
+		} else {
+			// Must be an array of values
+			if dataEntry.Values != nil {
 				dataMap[dataEntry.Name] = dataEntry.Values
-    		} else {
-    			// Invalid
-    			return retVal, fmt.Errorf("The POST data entry is missing the required value(s) field : " + dataEntry.Name)
-    		}
-    	}
-    }
+			} else {
+				// Invalid
+				return retVal, fmt.Errorf("The POST data entry is missing the required value(s) field : " + dataEntry.Name)
+			}
+		}
+	}
 
 	// Build the request body
 	body, err := json.Marshal(dataMap)
@@ -1297,7 +1319,7 @@ func registerOidcClient(endpoints *DiscoveryData, entry *IAGOidcReg, baUser stri
  * The client is registered and the oidc identity configuration snippet is returned ready to
  * be merged into the master configuration.
  */
-func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string) (error) {
+func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string) error {
 
 	reqLogger := log.WithName("handleOidcRegistration")
 	reqLogger.Info("Entry")
@@ -1306,7 +1328,7 @@ func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string)
 	secret := &corev1.Secret{}
 	err := rclient.Get(context.TODO(), types.NamespacedName{Name: entry.Secret, Namespace: ns}, secret)
 	if err != nil {
-		log.Error(err, "Failed to retrieve the OIDC registration secret : " + entry.Secret)
+		log.Error(err, "Failed to retrieve the OIDC registration secret : "+entry.Secret)
 		return err
 	}
 
@@ -1346,7 +1368,7 @@ func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string)
 		if baUser == "" || baPwd == "" {
 
 			// Check to see if it already exists
-			if bearerToken == "" { 
+			if bearerToken == "" {
 
 				tokenRetrievalClientId := string(secret.Data["tokenRetrievalClientId"])
 				tokenRetrievalClientSecret := string(secret.Data["tokenRetrievalClientSecret"])
@@ -1356,7 +1378,7 @@ func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string)
 				if err != nil {
 					// Couldn't get it. This may be ok as this is not a required token for all OPs
 					reqLogger.Info("Failed to retrieve an access token from the OIDC OP.")
-				} 
+				}
 			}
 		}
 
@@ -1401,26 +1423,26 @@ func doRequest(url string, method string, data []byte, insecure bool, baUser str
 	// Setup the TLS certs
 	rootCAs, _ := x509.SystemCertPool()
 	if rootCAs == nil {
-    	rootCAs = x509.NewCertPool()
+		rootCAs = x509.NewCertPool()
 	}
 
 	// Add service account CA to rootCAs
 	if !insecure {
-    	cert, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt")
-    	if err == nil {
-        	rootCAs.AppendCertsFromPEM(cert)
+		cert, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt")
+		if err == nil {
+			rootCAs.AppendCertsFromPEM(cert)
 		} else {
-        	logger.Info("No service account CA certificate has been set")
+			logger.Info("No service account CA certificate has been set")
 		}
 	}
 
 	// Create the client
-	client := &http.Client {
-    	Timeout: time.Second * 20,
-    	Transport: &http.Transport {
-        	TLSClientConfig: &tls.Config {
-            	RootCAs: rootCAs,
-            	InsecureSkipVerify: insecure,
+	client := &http.Client{
+		Timeout: time.Second * 20,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:            rootCAs,
+				InsecureSkipVerify: insecure,
 			},
 		},
 	}
@@ -1431,19 +1453,19 @@ func doRequest(url string, method string, data []byte, insecure bool, baUser str
 
 	// Set the correct content headers
 	if strings.HasPrefix(string(body), "{") {
-    	request.Header.Set("Content-type", "application/json")
-    	request.Header.Set("Accept", "application/json")
+		request.Header.Set("Content-type", "application/json")
+		request.Header.Set("Accept", "application/json")
 	} else {
-    	request.Header.Set("Content-type", "application/x-www-form-urlencoded")
+		request.Header.Set("Content-type", "application/x-www-form-urlencoded")
 	}
 
 	// Set Authorization header
 	if baUser != "" && baPwd != "" {
-    	logger.Info("Using basic authentication")
-    	request.SetBasicAuth(baUser, baPwd)
+		logger.Info("Using basic authentication")
+		request.SetBasicAuth(baUser, baPwd)
 	} else if bearerToken != "" {
-    	logger.Info("Using Bearer token authentication")
-    	request.Header.Set("Authorization", "Bearer " + bearerToken)
+		logger.Info("Using Bearer token authentication")
+		request.Header.Set("Authorization", "Bearer "+bearerToken)
 	}
 
 	// Make the call
@@ -1453,16 +1475,16 @@ func doRequest(url string, method string, data []byte, insecure bool, baUser str
 		return "", err
 	}
 	if err != nil {
-    	logger.Error(err, "Request failed.")
-    	return "", err
+		logger.Error(err, "Request failed.")
+		return "", err
 	}
 
 	// Handle the response
 	defer resp.Body.Close()
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-    	logger.Error(err, "Failed to get response data.")
-    	return "", err
+		logger.Error(err, "Failed to get response data.")
+		return "", err
 	}
 
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
@@ -1471,7 +1493,7 @@ func doRequest(url string, method string, data []byte, insecure bool, baUser str
 		return "", err
 	}
 
-	logger.Info("Exit") 
+	logger.Info("Exit")
 	return string(respBytes), nil
 }
 
@@ -1502,4 +1524,3 @@ func (r *IBMApplicationGatewayReconciler) SetupWithManager(mgr ctrl.Manager) err
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
-

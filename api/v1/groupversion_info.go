@@ -3,8 +3,8 @@
  */
 
 // Package v1 contains API Schema definitions for the ibm v1 API group
-//+kubebuilder:object:generate=true
-//+groupName=ibm.com
+// +kubebuilder:object:generate=true
+// +groupName=ibm.com
 package v1
 
 import (

@@ -30,7 +30,7 @@ USER 65532:65532
 ### Required OpenShift Labels
 LABEL name="IBM Application Gatway Operator" \
       vendor="IBM" \
-      version="v--version--" \
+      version="v24.03.0" \
       release="0" \
       summary="This operator adds lifecycle management support for the IBM Application Gateway." \
       description="IBM Application Gateway provides a containerized secure Web Reverse proxy which is designed to sit in front of your application, seamlessly adding authentication and authorization protection to your application.  The IBM Application Gateway operator provides lifecycle management of IBM Application Gateway instances running inside a Kubernetes container."

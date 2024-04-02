@@ -2,7 +2,7 @@
 
 module github.com/ibm-security/ibm-application-gateway-operator
 
-go 1.22
+go 1.19
 
 require (
 	github.com/ghodss/yaml v1.0.0 // indirect

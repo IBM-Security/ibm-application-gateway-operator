@@ -11,21 +11,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/ghodss/yaml"
 
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	appsv1      "k8s.io/api/apps/v1"
-	corev1      "k8s.io/api/core/v1"
 	admissionv1 "k8s.io/api/admission/v1"
-	metav1      "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 /*****************************************************************************/
@@ -37,13 +37,13 @@ var ignoredNamespaces = []string{
 
 const (
 	admissionWebhookAnnotationInjectKey = "ibm-application-gateway.security.ibm.com/"
-	imageAnnot = "ibm-application-gateway.security.ibm.com/deployment.image"
-	servPort = "ibm-application-gateway.security.ibm.com/service.port"
-	confPrefix = "ibm-application-gateway.security.ibm.com/configuration."
-	envPrefix = "ibm-application-gateway.security.ibm.com/env."
-	servAnnot = "ibm-application-gateway.security.ibm.com/serviceName"
-	cmAnnot = "ibm-application-gateway.security.ibm.com/configMapName"
-	volumeName = "ibm-application-gateway-config"
+	imageAnnot                          = "ibm-application-gateway.security.ibm.com/deployment.image"
+	servPort                            = "ibm-application-gateway.security.ibm.com/service.port"
+	confPrefix                          = "ibm-application-gateway.security.ibm.com/configuration."
+	envPrefix                           = "ibm-application-gateway.security.ibm.com/env."
+	servAnnot                           = "ibm-application-gateway.security.ibm.com/serviceName"
+	cmAnnot                             = "ibm-application-gateway.security.ibm.com/configMapName"
+	volumeName                          = "ibm-application-gateway-config"
 )
 
 var updateRequiredAnnotations = []string{
@@ -54,16 +54,16 @@ var updateRequiredAnnotations = []string{
 }
 
 type IAGConfigElement struct {
-	Name string
-	Type string
-	DataKey string
-	Value string
-	Url string 
-	Headers []IAGHeader
-	Order  int
+	Name              string
+	Type              string
+	DataKey           string
+	Value             string
+	Url               string
+	Headers           []IAGHeader
+	Order             int
 	DiscoveryEndpoint string
-	Secret string
-	PostData []IAGPostData
+	Secret            string
+	PostData          []IAGPostData
 }
 
 type patchOperation struct {
@@ -90,8 +90,8 @@ type IBMApplicationGatewayWebhook struct {
 /*
  * Function checks whether the target resoured need to be mutated
  */
-func mutationRequired(whsvr *IBMApplicationGatewayWebhook, ignoredList []string, metadata *metav1.ObjectMeta, 
-	                  isUpdate bool, ns string, appName string, isPod bool) (bool, []string) {
+func mutationRequired(whsvr *IBMApplicationGatewayWebhook, ignoredList []string, metadata *metav1.ObjectMeta,
+	isUpdate bool, ns string, appName string, isPod bool) (bool, []string) {
 
 	log.V(2).Info("IBMApplicationGatewayWebhook: mutationRequired")
 
@@ -133,9 +133,9 @@ func mutationRequired(whsvr *IBMApplicationGatewayWebhook, ignoredList []string,
 			err = whsvr.Client.Get(context.TODO(), types.NamespacedName{Name: appName, Namespace: ns}, obj)
 			annots = obj.Annotations
 		}
-		
+
 		if err != nil {
-			log.Error(err, "Could not find object to update : " + appName)
+			log.Error(err, "Could not find object to update : "+appName)
 			return false, nil
 		}
 
@@ -143,12 +143,12 @@ func mutationRequired(whsvr *IBMApplicationGatewayWebhook, ignoredList []string,
 
 			if strings.HasPrefix(key, admissionWebhookAnnotationInjectKey) {
 				if value != annotations[key] {
-					
+
 					// Pods do not support env updates
 					if isPod && strings.HasPrefix(key, envPrefix) {
 						continue
 					}
-					
+
 					annotationChanges = append(annotationChanges, key)
 
 					// Check to see if mutate is required yet
@@ -171,10 +171,10 @@ func mutationRequired(whsvr *IBMApplicationGatewayWebhook, ignoredList []string,
 					continue
 				}
 
-				// If the new annotations does not contain old value, its been deleted 
+				// If the new annotations does not contain old value, its been deleted
 				if annots[key] == "" {
 					annotationChanges = append(annotationChanges, key)
-				
+
 					// Check to see if mutate is required yet
 					if required != true {
 						for _, impAnnot := range updateRequiredAnnotations {
@@ -203,7 +203,7 @@ func validateAnnotations(annots map[string]string) (error, []IAGConfigElement) {
 	if annots[imageAnnot] == "" {
 		return fmt.Errorf("No IBM Application Gateway image has been specified."), nil
 	}
-	
+
 	configElements, err := getConfigElements(annots)
 	if err != nil {
 		return err, nil
@@ -287,98 +287,98 @@ func getConfigElements(annots map[string]string) ([]IAGConfigElement, error) {
 	oidcExists := false
 
 	// Now for each unique name get the required config
-	for name := range(configNames) {
+	for name := range configNames {
 		var currElem IAGConfigElement
 
-		currElem.Type = cfgAnnotations[name + ".type"]
-		currElem.Order, err = strconv.Atoi(cfgAnnotations[name + ".order"])
+		currElem.Type = cfgAnnotations[name+".type"]
+		currElem.Order, err = strconv.Atoi(cfgAnnotations[name+".order"])
 		if err != nil {
-		    return nil, fmt.Errorf("Configuration entry has an invalid order value : " + cfgAnnotations[name + ".order"])
+			return nil, fmt.Errorf("Configuration entry has an invalid order value : " + cfgAnnotations[name+".order"])
 		}
 
 		switch currElem.Type {
-			case "configmap":
-				// Config map requires name, datakey and order
-				currElem.Name = cfgAnnotations[name + ".name"]
-				currElem.DataKey = cfgAnnotations[name + ".dataKey"]
+		case "configmap":
+			// Config map requires name, datakey and order
+			currElem.Name = cfgAnnotations[name+".name"]
+			currElem.DataKey = cfgAnnotations[name+".dataKey"]
 
-			case "oidc_registration":
+		case "oidc_registration":
 
-				// Error if more than one oidc_registration exists
-				if oidcExists {
-					return nil, fmt.Errorf("Configuration must not contain multiple oidc_registration entries") 
+			// Error if more than one oidc_registration exists
+			if oidcExists {
+				return nil, fmt.Errorf("Configuration must not contain multiple oidc_registration entries")
+			}
+
+			// Oidc registration has a discoveryEndpoint, secret and postData
+			currElem.DiscoveryEndpoint = cfgAnnotations[name+".discoveryEndpoint"]
+			currElem.Secret = cfgAnnotations[name+".secret"]
+
+			// Get the post data
+			var postData []IAGPostData
+
+			// There can be multiple postData entries defined in the form
+			// configuration.sample.postData.<name>: <vals>
+			for pdName := range pdNames {
+
+				// Create the postData prefix
+				var pdPrefix = name + ".postData." + pdName
+
+				var currPd IAGPostData
+
+				// Set the postdata name and value(s)
+				currPd.Name = cfgAnnotations[pdPrefix+".name"]
+
+				// Name is required
+				if currPd.Name != "" {
+
+					// Get the value if it exists
+					currPd.Value = cfgAnnotations[pdPrefix+".value"]
+
+					// Check for values if value has not been specified
+					if currPd.Value == "" {
+						currPd.Values = pdValues[pdName]
+					}
+					postData = append(postData, currPd)
+				}
+			}
+
+			currElem.PostData = postData
+			oidcExists = true
+
+		case "web":
+			// Web has a url , order and headers
+			currElem.Url = cfgAnnotations[name+".url"]
+
+			var headers []IAGHeader
+
+			// There can be multiple headers defined in the form
+			// configuration.sample.header.<name>.<vals>
+			for hdrName := range hdrNames {
+
+				var hdrPrefix = name + ".header." + hdrName
+
+				var currHdr IAGHeader
+
+				currHdr.Type = cfgAnnotations[hdrPrefix+".type"]
+
+				if currHdr.Type != "" && currHdr.Type != "secret" && currHdr.Type != "literal" {
+					return nil, fmt.Errorf("Configuration entry has an invalid header type : " + currHdr.Type)
 				}
 
-				// Oidc registration has a discoveryEndpoint, secret and postData
-				currElem.DiscoveryEndpoint = cfgAnnotations[name + ".discoveryEndpoint"]
-				currElem.Secret = cfgAnnotations[name + ".secret"]
+				if currHdr.Type != "" {
+					// Valid for this entry
+					currHdr.Name = cfgAnnotations[hdrPrefix+".name"]
+					currHdr.Value = cfgAnnotations[hdrPrefix+".value"]
+					currHdr.SecretKey = cfgAnnotations[hdrPrefix+".secretKey"]
 
-				// Get the post data
-				var postData []IAGPostData
-
-				// There can be multiple postData entries defined in the form
-				// configuration.sample.postData.<name>: <vals>
-				for pdName := range(pdNames) {
-
-					// Create the postData prefix
-					var pdPrefix = name + ".postData." + pdName
-
-					var currPd IAGPostData
-
-					// Set the postdata name and value(s)
-					currPd.Name = cfgAnnotations[pdPrefix + ".name"]
-
-					// Name is required
-					if currPd.Name != "" {
-
-						// Get the value if it exists
-						currPd.Value = cfgAnnotations[pdPrefix + ".value"]
-
-						// Check for values if value has not been specified
-						if currPd.Value == "" {
-							currPd.Values = pdValues[pdName]
-						}
-						postData = append(postData, currPd)
-					}
+					headers = append(headers, currHdr)
 				}
+			}
 
-				currElem.PostData = postData
-				oidcExists = true
-				
-			case "web":
-				// Web has a url , order and headers
-				currElem.Url = cfgAnnotations[name + ".url"]
+			currElem.Headers = headers
 
-				var headers []IAGHeader
-
-				// There can be multiple headers defined in the form
-				// configuration.sample.header.<name>.<vals>
-				for hdrName := range(hdrNames) {
-
-					var hdrPrefix = name + ".header." + hdrName
-
-					var currHdr IAGHeader
-
-					currHdr.Type = cfgAnnotations[hdrPrefix + ".type"]
-
-					if currHdr.Type != "" && currHdr.Type != "secret" && currHdr.Type != "literal" {
-						return nil, fmt.Errorf("Configuration entry has an invalid header type : " + currHdr.Type)
-					}
-
-					if currHdr.Type != "" {
-						// Valid for this entry
-						currHdr.Name = cfgAnnotations[hdrPrefix + ".name"]
-						currHdr.Value = cfgAnnotations[hdrPrefix + ".value"]
-						currHdr.SecretKey = cfgAnnotations[hdrPrefix + ".secretKey"]
-
-						headers = append(headers, currHdr)
-					}
-				}
-
-				currElem.Headers = headers
-
-			default:
-				return nil, fmt.Errorf("Configuration entry has an invalid type : " + currElem.Type)
+		default:
+			return nil, fmt.Errorf("Configuration entry has an invalid type : " + currElem.Type)
 		}
 
 		configElements = append(configElements, currElem)
@@ -401,7 +401,7 @@ func createIAGConfig(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admis
 
 	// Sort via the order fields
 	sort.SliceStable(configElements, func(first, second int) bool {
-	    return configElements[first].Order < configElements[second].Order
+		return configElements[first].Order < configElements[second].Order
 	})
 
 	// Merge all of the entries
@@ -415,7 +415,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 
 	log.V(2).Info("IBMApplicationGatewayWebhook : mergeIAGConfig")
 
-	master := make(map[string]interface {})
+	master := make(map[string]interface{})
 	var err error
 
 	var oidcReg IAGConfigElement
@@ -423,26 +423,26 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 
 	for _, element := range configElements {
 		switch element.Type {
-			case "configmap":
-				// Handle configmap entry
-				master, err = handleIAGConfigMap(whsvr, element.Name, element.DataKey, ns, master)
-				if err != nil {
-					log.Error(err, "Error encountered attempting to merge a config map : " + element.Name)
-					return "", err
-				}
-			case "web":
-				// Handle web entry
-				master, err = handleWebEntryMerge(whsvr.Client, types.NamespacedName{Name: "dummy", Namespace: ns}, 
-					                              element.Url, element.Headers, master)
-				if err != nil {
-					log.Error(err, "Error encountered attempting to merge a web config : " + element.Url)
-					return "", err
-				}
+		case "configmap":
+			// Handle configmap entry
+			master, err = handleIAGConfigMap(whsvr, element.Name, element.DataKey, ns, master)
+			if err != nil {
+				log.Error(err, "Error encountered attempting to merge a config map : "+element.Name)
+				return "", err
+			}
+		case "web":
+			// Handle web entry
+			master, err = handleWebEntryMerge(whsvr.Client, types.NamespacedName{Name: "dummy", Namespace: ns},
+				element.Url, element.Headers, master)
+			if err != nil {
+				log.Error(err, "Error encountered attempting to merge a web config : "+element.Url)
+				return "", err
+			}
 
-			case "oidc_registration":
-				// Don't handle it here. Need to make sure the oidc registration happens last
-				oidcReg = element 
-				foundOidcElem = true
+		case "oidc_registration":
+			// Don't handle it here. Need to make sure the oidc registration happens last
+			oidcReg = element
+			foundOidcElem = true
 		}
 	}
 
@@ -458,7 +458,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 		// Handle the registration and merge
 		master, err = handleOidcEntryMerge(whsvr.Client, iagOidcReg, ns, master)
 		if err != nil {
-			log.Error(err, "Error encountered attempting to merge OIDC registration : " + oidcReg.Name)
+			log.Error(err, "Error encountered attempting to merge OIDC registration : "+oidcReg.Name)
 			return "", err
 		}
 	}
@@ -472,7 +472,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 
 	var retName string
 
-	// First create the new configmap	
+	// First create the new configmap
 	configMap := getNewConfigMap(getWebhookConfigMapName(req), getAppName(req), ns, string(masterYaml))
 	err = whsvr.Client.Create(context.TODO(), configMap)
 	if err != nil {
@@ -491,21 +491,21 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 /*
  * Function retrieves a config map source and merges the data with the current master source.
  */
-func handleIAGConfigMap(whsvr *IBMApplicationGatewayWebhook, configMap string, dataKey string, ns string, masterConfig map[string]interface {}) (map[string]interface {}, error) {
-	
+func handleIAGConfigMap(whsvr *IBMApplicationGatewayWebhook, configMap string, dataKey string, ns string, masterConfig map[string]interface{}) (map[string]interface{}, error) {
+
 	log.V(2).Info("IBMApplicationGatewayWebhook : handleIAGConfigMap")
 
 	// Fetch the config map
 	configMapFound := &corev1.ConfigMap{}
 	err := whsvr.Client.Get(context.TODO(), types.NamespacedName{Name: configMap, Namespace: ns}, configMapFound)
 	if err != nil {
-		log.Error(err, "Could not find config map : " + configMap)
+		log.Error(err, "Could not find config map : "+configMap)
 		return nil, err
 	}
 
 	// Get the config map data pointed at by the data key
 	cmData := configMapFound.Data[dataKey]
-	
+
 	masterConfig, err = handleYamlDataMerge(cmData, masterConfig)
 	if err != nil {
 		log.Error(err, "Failed to merge the configmap data")
@@ -530,7 +530,7 @@ func addIAGService(whsvr *IBMApplicationGatewayWebhook, annots map[string]string
 		return "", err
 	}
 
-	return  service.Name, nil
+	return service.Name, nil
 }
 
 /*
@@ -559,7 +559,7 @@ func updateIAGService(whsvr *IBMApplicationGatewayWebhook, annots map[string]str
 		log.Error(err, "An error was encountered while attempting to delete the old service.")
 	}
 
-	return  sName, nil
+	return sName, nil
 }
 
 /*
@@ -578,7 +578,7 @@ func getServiceName(req *admissionv1.AdmissionRequest) string {
 /*
  * Function retrieves the base application name.
  */
-func getAppName(req *admissionv1.AdmissionRequest) (string) {
+func getAppName(req *admissionv1.AdmissionRequest) string {
 
 	name := req.Name
 	if req.Kind.Kind == "Pod" {
@@ -591,7 +591,7 @@ func getAppName(req *admissionv1.AdmissionRequest) (string) {
 /*
  * Function retrieves the base configmap name.
  */
-func getWebhookConfigMapName(req *admissionv1.AdmissionRequest) (string) {
+func getWebhookConfigMapName(req *admissionv1.AdmissionRequest) string {
 
 	name := req.Name
 	if req.Kind.Kind == "Pod" {
@@ -607,12 +607,12 @@ func getWebhookConfigMapName(req *admissionv1.AdmissionRequest) (string) {
 func newService(annots map[string]string, req *admissionv1.AdmissionRequest) *corev1.Service {
 
 	log.V(2).Info("IBMApplicationGatewayWebhook : newService")
-	
+
 	name := getServiceName(req)
 
 	port, err := strconv.Atoi(annots[servPort])
 	if err != nil {
-	    port = 30443
+		port = 30443
 	}
 
 	labels := map[string]string{
@@ -620,21 +620,21 @@ func newService(annots map[string]string, req *admissionv1.AdmissionRequest) *co
 	}
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:      name,
-			Namespace: req.Namespace,
-			Labels:    labels,
+			GenerateName: name,
+			Namespace:    req.Namespace,
+			Labels:       labels,
 		},
-		Spec: corev1.ServiceSpec {
-			Ports: []corev1.ServicePort {
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
 				{
-					Port: 8443,
+					Port:     8443,
 					NodePort: int32(port),
 					Protocol: "TCP",
-					Name: name,
+					Name:     name,
 				},
 			},
 			Type: "NodePort",
-			Selector: map[string]string {
+			Selector: map[string]string{
 				"app": req.Name,
 			},
 		},
@@ -644,14 +644,14 @@ func newService(annots map[string]string, req *admissionv1.AdmissionRequest) *co
 /*
  * Function creates patches to add the IAG container and Volume definition to the existing spec.
  */
-func addIAGContainer(currVolumes []corev1.Volume, annots map[string]string, containers []corev1.Container, 
+func addIAGContainer(currVolumes []corev1.Volume, annots map[string]string, containers []corev1.Container,
 	basePath string, cmName string, req *admissionv1.AdmissionRequest, update bool, configChanged bool) (patch []patchOperation, err error) {
 
 	log.V(2).Info("IBMApplicationGatewayWebhook : addIAGContainer")
 
 	imageLocation := annots[imageAnnot]
 	if imageLocation == "" {
-	    return nil, fmt.Errorf("No IBM Application Gateway image has been specified.")
+		return nil, fmt.Errorf("No IBM Application Gateway image has been specified.")
 	}
 
 	imagePullPolicyStr := annots["ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy"]
@@ -661,12 +661,12 @@ func addIAGContainer(currVolumes []corev1.Volume, annots map[string]string, cont
 
 	var imagePullPolicy corev1.PullPolicy
 	switch strings.ToLower(imagePullPolicyStr) {
-		case "never":
-			imagePullPolicy = corev1.PullNever
-		case "always":
-			imagePullPolicy = corev1.PullAlways
-		default:
-			imagePullPolicy = corev1.PullIfNotPresent
+	case "never":
+		imagePullPolicy = corev1.PullNever
+	case "always":
+		imagePullPolicy = corev1.PullAlways
+	default:
+		imagePullPolicy = corev1.PullIfNotPresent
 	}
 
 	// Volume only needs to be added on create or configChange
@@ -702,7 +702,7 @@ func addIAGContainer(currVolumes []corev1.Volume, annots map[string]string, cont
 					Value: volume,
 				})
 				handled = true
-			} 
+			}
 		}
 
 		if !handled {
@@ -740,8 +740,8 @@ func addIAGContainer(currVolumes []corev1.Volume, annots map[string]string, cont
 		if strings.HasPrefix(key, envPrefix) {
 			realKey := strings.TrimPrefix(key, envPrefix)
 
-			envVal := corev1.EnvVar {
-				Name: realKey,
+			envVal := corev1.EnvVar{
+				Name:  realKey,
 				Value: value,
 			}
 
@@ -751,37 +751,37 @@ func addIAGContainer(currVolumes []corev1.Volume, annots map[string]string, cont
 
 	// Next add the container
 	iagCont := corev1.Container{
-     	Name: getAppName(req), 
-        Image: imageLocation,
-        ImagePullPolicy: imagePullPolicy,
-        Ports: []corev1.ContainerPort{
-        	{
-                ContainerPort: 80,
-            },
-        },
-        VolumeMounts: []corev1.VolumeMount{
-        	{
+		Name:            getAppName(req),
+		Image:           imageLocation,
+		ImagePullPolicy: imagePullPolicy,
+		Ports: []corev1.ContainerPort{
+			{
+				ContainerPort: 80,
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
 				Name:      "ibm-application-gateway-config",
 				MountPath: "/var/iag/config",
 			},
 		},
 		Env: envList,
-		ReadinessProbe: &corev1.Probe {
+		ReadinessProbe: &corev1.Probe{
 			InitialDelaySeconds: int32(readinessInitDelay),
-			PeriodSeconds: int32(readinessPeriod),
-			ProbeHandler: corev1.ProbeHandler {
-				Exec: &corev1.ExecAction {
+			PeriodSeconds:       int32(readinessPeriod),
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
 					Command: []string{
 						readinessCmd,
 					},
 				},
 			},
 		},
-		LivenessProbe: &corev1.Probe {
+		LivenessProbe: &corev1.Probe{
 			InitialDelaySeconds: int32(livenessInitDelay),
-			PeriodSeconds: int32(livenessPeriod),
-			ProbeHandler: corev1.ProbeHandler {
-				Exec: &corev1.ExecAction {
+			PeriodSeconds:       int32(livenessPeriod),
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
 					Command: []string{
 						livenessCmd,
 					},
@@ -859,8 +859,8 @@ func addAnnotations(currAnnots map[string]string, newAnnots map[string]string) (
 	}
 
 	patch = append(patch, patchOperation{
-		Op:   oper,
-		Path: "/metadata/annotations",
+		Op:    oper,
+		Path:  "/metadata/annotations",
 		Value: currAnnots,
 	})
 
@@ -870,8 +870,8 @@ func addAnnotations(currAnnots map[string]string, newAnnots map[string]string) (
 /*
  * Function creates the IAG configmap and service plus the patches to mutate the target resource.
  */
-func createObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume, annots map[string]string, containers []corev1.Container, 
-	               basePath string, req *admissionv1.AdmissionRequest) ([]byte, error) {
+func createObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume, annots map[string]string, containers []corev1.Container,
+	basePath string, req *admissionv1.AdmissionRequest) ([]byte, error) {
 
 	log.V(2).Info("IBMApplicationGatewayWebhook : createObjects")
 
@@ -919,7 +919,7 @@ func createObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume,
 	newAnnotations := make(map[string]string)
 	newAnnotations[servAnnot] = sName
 	newAnnotations[cmAnnot] = cmName
-	patchOps = addAnnotations(annots, newAnnotations) 
+	patchOps = addAnnotations(annots, newAnnotations)
 	patch = append(patch, patchOps...)
 
 	return json.Marshal(patch)
@@ -928,8 +928,8 @@ func createObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume,
 /*
  * Function updates the IAG configmap and service plus the patches to mutate the target resource.
  */
-func updateObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume, annots map[string]string, containers []corev1.Container, 
-	               basePath string, req *admissionv1.AdmissionRequest, annotationChanges []string) ([]byte, error) {
+func updateObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume, annots map[string]string, containers []corev1.Container,
+	basePath string, req *admissionv1.AdmissionRequest, annotationChanges []string) ([]byte, error) {
 
 	log.V(2).Info("IBMApplicationGatewayWebhook : updateObjects")
 
@@ -994,7 +994,7 @@ func updateObjects(whsvr *IBMApplicationGatewayWebhook, volumes []corev1.Volume,
 		newAnnotations[cmAnnot] = cmName
 	}
 	if updateService || updateConfig {
-		patchOps := addAnnotations(annots, newAnnotations) 
+		patchOps := addAnnotations(annots, newAnnotations)
 		patch = append(patch, patchOps...)
 	}
 
@@ -1014,11 +1014,11 @@ func deleteService(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admissi
 	if err == nil {
 		// No error so must have been found
 		err = whsvr.Client.Delete(context.TODO(), foundSvc)
-        if err != nil {
-            log.Error(err, "failed to delete the service")
-            return err
-        }
-	} else { 
+		if err != nil {
+			log.Error(err, "failed to delete the service")
+			return err
+		}
+	} else {
 		if errors.IsNotFound(err) {
 			log.V(2).Info("Service did not exist")
 			// No op. Does not exist so ignore
@@ -1035,7 +1035,7 @@ func deleteService(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admissi
  * Function deletes the IAG configmap.
  */
 func deleteConfigMap(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.AdmissionRequest, configMapName string) error {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: deleteConfigMap")
 
 	// Check if this Service already exists
@@ -1044,11 +1044,11 @@ func deleteConfigMap(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admis
 	if err == nil {
 		// No error so must have been found
 		err = whsvr.Client.Delete(context.TODO(), foundCM)
-        if err != nil {
-            log.Error(err, "failed to delete the config map")
-            return err
-        }
-	} else { 
+		if err != nil {
+			log.Error(err, "failed to delete the config map")
+			return err
+		}
+	} else {
 		if errors.IsNotFound(err) {
 			log.V(2).Info("Config Map did not exist")
 			// No op. Does not exist so ignore
@@ -1065,18 +1065,18 @@ func deleteConfigMap(whsvr *IBMApplicationGatewayWebhook, req *admissionv1.Admis
  * Function handles a mutate create operation.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateCreate(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: mutateCreate")
 
 	switch req.Kind.Kind {
-		case "Pod":
-			return whsvr.mutateCreatePod(req)
-		case "Deployment":
-			return whsvr.mutateCreateDeployment(req)
-		default:
-			return &admissionv1.AdmissionResponse{
-				Allowed: true,
-			}
+	case "Pod":
+		return whsvr.mutateCreatePod(req)
+	case "Deployment":
+		return whsvr.mutateCreateDeployment(req)
+	default:
+		return &admissionv1.AdmissionResponse{
+			Allowed: true,
+		}
 	}
 }
 
@@ -1084,7 +1084,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreate(req *admissionv1.Admissi
  * Function handles a mutate create operation on a deployment resource.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateCreateDeployment(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: mutateCreateDeployment")
 
 	var depl appsv1.Deployment
@@ -1141,7 +1141,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreateDeployment(req *admission
  * Function handles a mutate create operation on a POD resource.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateCreatePod(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: MutateCreatePod")
 
 	var pod corev1.Pod
@@ -1198,18 +1198,18 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateCreatePod(req *admissionv1.Admi
  * Function handles a mutate update operation.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateUpdate(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: MutateUpdate")
 
 	switch req.Kind.Kind {
-		case "Pod":
-			return whsvr.mutateUpdatePod(req)
-		case "Deployment":
-			return whsvr.mutateUpdateDeployment(req)
-		default:
-			return &admissionv1.AdmissionResponse{
-				Allowed: true,
-			}
+	case "Pod":
+		return whsvr.mutateUpdatePod(req)
+	case "Deployment":
+		return whsvr.mutateUpdateDeployment(req)
+	default:
+		return &admissionv1.AdmissionResponse{
+			Allowed: true,
+		}
 	}
 }
 
@@ -1217,7 +1217,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdate(req *admissionv1.Admissi
  * Function handles a mutate update operation on a DEPLOYMENT resource.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateUpdateDeployment(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: MutateUpdateDeployment")
 
 	var depl appsv1.Deployment
@@ -1268,7 +1268,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdateDeployment(req *admission
  * Function handles a mutate update operation on a POD resource.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateUpdatePod(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: MutateUpdatePod")
 
 	var pod corev1.Pod
@@ -1319,18 +1319,18 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateUpdatePod(req *admissionv1.Admi
  * Function handles a mutate delete operation.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateDelete(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: mutateDelete")
 
 	switch req.Kind.Kind {
-		case "Pod":
-			return whsvr.mutateDeletePod(req)
-		case "Deployment":
-			return whsvr.mutateDeleteDeployment(req)
-		default:
-			return &admissionv1.AdmissionResponse{
-				Allowed: true,
-			}
+	case "Pod":
+		return whsvr.mutateDeletePod(req)
+	case "Deployment":
+		return whsvr.mutateDeleteDeployment(req)
+	default:
+		return &admissionv1.AdmissionResponse{
+			Allowed: true,
+		}
 	}
 }
 
@@ -1338,7 +1338,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDelete(req *admissionv1.Admissi
  * Function handles a mutate delete operation on a deployment resource.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteDeployment(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: mutateDeleteDeployment")
 
 	var depl appsv1.Deployment
@@ -1369,7 +1369,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteDeployment(req *admission
  * Function handles a mutate delete operation on a POD resource.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutateDeletePod(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: mutateDeletePod")
 
 	var pod corev1.Pod
@@ -1399,7 +1399,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeletePod(req *admissionv1.Admi
 /*
  * Function handles the common parts of a mutate delete operation.
  */
-func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteCommon(req *admissionv1.AdmissionRequest, annots map[string]string) *admissionv1.AdmissionResponse {	
+func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteCommon(req *admissionv1.AdmissionRequest, annots map[string]string) *admissionv1.AdmissionResponse {
 
 	log.V(2).Info("IBMApplicationGatewayWebhook: mutateDeleteCommon")
 
@@ -1410,7 +1410,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteCommon(req *admissionv1.A
 	deleteConfigMap(whsvr, req, cmName)
 
 	return &admissionv1.AdmissionResponse{
-			Allowed: true,
+		Allowed: true,
 	}
 }
 
@@ -1418,23 +1418,23 @@ func (whsvr *IBMApplicationGatewayWebhook) mutateDeleteCommon(req *admissionv1.A
  * Function handles a mutate request.
  */
 func (whsvr *IBMApplicationGatewayWebhook) mutate(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
-	
+
 	log.V(2).Info("IBMApplicationGatewayWebhook: mutate")
 
 	operation := req.Operation
 
 	switch operation {
-		case "DELETE":
-			return whsvr.mutateDelete(req)
-		case "UPDATE":
-			return whsvr.mutateUpdate(req)
-		case "CREATE":
-			return whsvr.mutateCreate(req)
-		default:
-			// We don't do anything for any other ops
-			return &admissionv1.AdmissionResponse{
-				Allowed: true,
-			}
+	case "DELETE":
+		return whsvr.mutateDelete(req)
+	case "UPDATE":
+		return whsvr.mutateUpdate(req)
+	case "CREATE":
+		return whsvr.mutateCreate(req)
+	default:
+		// We don't do anything for any other ops
+		return &admissionv1.AdmissionResponse{
+			Allowed: true,
+		}
 	}
 }
 
@@ -1446,7 +1446,7 @@ func (whsvr *IBMApplicationGatewayWebhook) mutate(req *admissionv1.AdmissionRequ
  */
 
 func (a *IBMApplicationGatewayWebhook) Handle(
-			ctx context.Context, req admission.Request) admission.Response {
+	ctx context.Context, req admission.Request) admission.Response {
 	log.V(2).Info("IBMApplicationGatewayWebhook: Handle")
 
 	/*
@@ -1479,4 +1479,3 @@ func (a *IBMApplicationGatewayWebhook) InjectDecoder(d *admission.Decoder) error
 
 	return nil
 }
-

@@ -91,6 +91,7 @@ jobs:
       # Perform the build.
       - name: Perform the build.
         run: |
+          go mod tidy
           export IMAGE_TAG_BASE=icr.io/ibmappgateway/ibm-application-gateway-operator
 
           case $GITHUB_REF in 

@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -95,6 +94,7 @@ type IBMApplicationGatewayReconciler struct {
 
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=ibm.com,resources=ibmapplicationgateways/finalizers,verbs=update
@@ -1521,6 +1521,6 @@ func manageError(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMApplicat
 func (r *IBMApplicationGatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ibmv1.IBMApplicationGateway{}).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForObject{}).
+		Watches(&corev1.ConfigMap{}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

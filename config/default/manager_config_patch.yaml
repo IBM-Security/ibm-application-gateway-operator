@@ -11,6 +11,7 @@ spec:
       containers:
       - name: manager
         args:
+        - "--metrics-bind-address=:8443"
         - "--config=controller_manager_config.yaml"
         volumeMounts:
         - name: manager-config
@@ -20,3 +21,6 @@ spec:
       - name: manager-config
         configMap:
           name: manager-config
+      ports:
+      - containerPort: 8443
+      - containerPort: 9443

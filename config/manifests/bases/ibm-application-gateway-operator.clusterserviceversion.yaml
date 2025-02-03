@@ -20,7 +20,7 @@ spec:
     owned:
     - description: IBMApplicationGateway is the Schema for the ibmapplicationgateways
         API
-      displayName: IBMApplication Gateway
+      displayName: IBM Application Gateway
       kind: IBMApplicationGateway
       name: ibmapplicationgateways.ibm.com
       version: v1

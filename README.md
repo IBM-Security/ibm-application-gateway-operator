@@ -214,7 +214,7 @@ As such the OIDC provider must support discovery and dynamic client registration
 
 The request to an OIDC provider to dynamically register a new client will require certain properties to be provided in the form of POST data. The properties are defined as part of the [OpenID Connect Dynamic Client Registration specification](https://openid.net/specs/openid-connect-registration-1_0.html). Each individual OIDC provider implementation may also include their own list of additional properties that may be set.
 
-IBM Security Verify properties are defined in the [IBM Knowledge Center](https://www.ibm.com/support/knowledgecenter/en/SSCT62/com.ibm.iamservice.doc/tasks/t_dynamic_kc.html).
+IBM Security Verify properties are defined in the [IBM Knowledge Center](https://www.ibm.com/docs/en/security-verify?topic=connect-dynamic-client-registration).
 
 When using the `IBMApplicationGateway` custom resource the POST data properties may be added in one of 2 ways:
 

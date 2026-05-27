@@ -131,7 +131,7 @@ To install the IBM Application Gateway operator from OperatorHub.io:
 kubectl get csv -n operators
 
 NAME                                        DISPLAY                            VERSION   REPLACES   PHASE
-ibm-application-gateway-operator.v22.02.0   IBM Application Gateway Operator   22.02.0              Succeeded
+ibm-application-gateway-operator.v26.5.0    IBM Application Gateway Operator   26.5.0               Succeeded
 ``` 
 
 At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator on OperatorHub.io. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
@@ -357,7 +357,7 @@ spec:
   replicas: 3
   deployment:
     serviceAccountName: ibm-application-gateway
-    image: icr.io/ibmappgateway/ibm-application-gateway:22.07.0 
+    image: icr.io/ibmappgateway/ibm-application-gateway:26.03
     imagePullPolicy: IfNotPresent 
   configuration:
     - type: configmap
@@ -893,7 +893,7 @@ Deployment annotations define how the IBM Application Gateway sidecar container 
 Example:
 
 ```yaml
-ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:22.07.0
+ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.03
 ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
 ```
 
@@ -1107,7 +1107,7 @@ metadata:
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.name: Authorization
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.value: githubsecret
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.secretKey: value
-    ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:22.07.0
+    ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.03
     ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
     ibm-application-gateway.security.ibm.com/service.port: "30441"
 spec:

@@ -5,6 +5,7 @@ kind: Service
 metadata:
   labels:
     control-plane: controller-manager
+    app: ibm-application-gateway-operator
   name: ctrl-mgr-metrics-service
   namespace: system
 spec:
@@ -15,3 +16,4 @@ spec:
     targetPort: https
   selector:
     control-plane: controller-manager
+    app: ibm-application-gateway-operator

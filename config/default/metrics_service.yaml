@@ -3,6 +3,7 @@ kind: Service
 metadata:
   labels:
     control-plane: controller-manager
+    app: ibm-application-gateway-operator
   name: metrics-service
   namespace: system
 spec:
@@ -13,3 +14,4 @@ spec:
     targetPort: 8443
   selector:
     control-plane: controller-manager
+    app: ibm-application-gateway-operator

@@ -131,7 +131,7 @@ To install the IBM Application Gateway operator from OperatorHub.io:
 kubectl get csv -n operators
 
 NAME                                        DISPLAY                            VERSION   REPLACES   PHASE
-ibm-application-gateway-operator.v26.5.0    IBM Application Gateway Operator   26.5.0               Succeeded
+ibm-application-gateway-operator.v26.6.0    IBM Application Gateway Operator   26.6.0               Succeeded
 ``` 
 
 At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator on OperatorHub.io. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.

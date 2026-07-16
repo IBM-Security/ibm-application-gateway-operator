@@ -155,6 +155,7 @@ type IBMApplicationGatewayConfiguration struct {
 	// The URL which is used to retrieve the configuration data.  Used when the
 	// type is web.
 	// +optional
+	// +kubebuilder:validation:Pattern=`^https://`
 	Url string `json:"url"`
 
 	// Any headers which are associated with the request which is sent to
@@ -168,6 +169,7 @@ type IBMApplicationGatewayConfiguration struct {
 
 	// The OIDC discovery endpoint.  Used when type is oidc_registration.
 	// +optional
+	// +kubebuilder:validation:Pattern=`^https://`
 	DiscoveryEndpoint string `json:"discoveryEndpoint"`
 
 	// The name of the secret which contains the credential information.  Used

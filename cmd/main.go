@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -47,8 +48,14 @@ func main() {
 	var enableHTTP2 bool
 	var enableLeaderElection bool
 	var probeAddr string
+	var allowedURLHosts string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&allowedURLHosts, "allowed-url-hosts", "",
+		"Comma-separated list of permitted hostnames (or hostname suffixes prefixed with '.') "+
+			"for web configuration URLs and OIDC discovery endpoints. "+
+			"When empty, all HTTPS hosts are permitted (scheme-only enforcement). "+
+			"Example: --allowed-url-hosts=myidp.example.com,.internal.corp")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -103,11 +110,32 @@ func main() {
 		os.Exit(1)
 	}
 
+	var allowedHosts []string
+	if allowedURLHosts != "" {
+		for _, h := range strings.Split(allowedURLHosts, ",") {
+			h = strings.TrimSpace(h)
+			if h != "" {
+				allowedHosts = append(allowedHosts, h)
+			}
+		}
+		setupLog.Info("Outbound URL host allowlist configured", "hosts", allowedHosts)
+	} else {
+		// No allowlist configured: the operator will accept any HTTPS host in web
+		// configuration URLs and OIDC discovery endpoints.  This is a security
+		// risk in multi-tenant clusters.  Set --allowed-url-hosts to restrict
+		// which hosts the operator may contact.
+		setupLog.Info("WARNING: --allowed-url-hosts is not set. " +
+			"The operator will fetch web configuration and OIDC endpoints from any HTTPS host. " +
+			"Set --allowed-url-hosts to an explicit list of permitted hostnames to reduce " +
+			"the risk of server-side request forgery (SSRF).")
+	}
+
 	if err = (&controllers.IBMApplicationGatewayReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		EventRecorder: mgr.GetEventRecorderFor("ibm-application-gateway-operator"),
-		Leader:        leader,
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		EventRecorder:   mgr.GetEventRecorderFor("ibm-application-gateway-operator"),
+		Leader:          leader,
+		AllowedURLHosts: allowedHosts,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IBMApplicationGateway")
 		os.Exit(1)
@@ -127,7 +155,8 @@ func main() {
 	mgr.GetWebhookServer().Register("/mutate-v1-iag",
 		&webhook.Admission{
 			Handler: &controllers.IBMApplicationGatewayWebhook{
-				Client: mgr.GetClient(),
+				Client:          mgr.GetClient(),
+				AllowedURLHosts: allowedHosts,
 			},
 		})
 

@@ -4,6 +4,8 @@
   * [Models](#models)
     + [Sidecar](#sidecar)
     + [Custom Resource Model](#custom-resource-model)
+  * [Security Configuration](#security-configuration)
+    + [Restricting Outbound URL Hosts](#restricting-outbound-url-hosts)
   * [Installation](#installation)
     + [RedHat OpenShift Environment](#redhat-openshift-environment)
       - [Procedure](#procedure)
@@ -85,11 +87,45 @@ The custom resource deployment of IBM Application Gateway is suitable when:
 * The IBM Application Gateway configuration needs to be split across multiple sources
 * There are multiple instances of the IBM Application Gateway required.  The operator will manage all instances with minimal assistance from the Kubernetes administrator.
 
+## Security Configuration
+
+### Restricting Outbound URL Hosts
+
+The operator makes outbound HTTPS requests to URLs specified in `IBMApplicationGateway`
+custom resources — both `type: web` configuration sources and `type: oidc_registration`
+discovery endpoints. By default the operator permits any HTTPS host. In multi-tenant
+clusters this is a security risk: any user with permission to create or modify
+`IBMApplicationGateway` resources can direct the operator pod to contact arbitrary hosts.
+
+**Setting `--allowed-url-hosts` after installation is strongly recommended.**
+
+The flag accepts a comma-separated list of permitted hostnames. Two formats are supported:
+
+| Format | Example | Matches |
+|---|---|---|
+| Exact hostname | `myidp.example.com` | Only `myidp.example.com` |
+| Dot-prefixed suffix | `.internal.corp` | Any subdomain of `internal.corp` |
+
+The operator enforces this list on every outbound request, including HTTP redirects.
+If a URL's hostname is not in the list the request is rejected and an error is written
+to the operator pod logs. If the flag is omitted, a warning is logged on every startup
+and cannot be suppressed without setting the flag.
+
+The steps to configure the flag are included at the end of each installation procedure below.
+
+#### Upgrade behaviour
+
+The flag defaults to empty (all HTTPS hosts permitted). Upgrading from a previous version
+without setting the flag preserves existing behaviour — no existing CRs will break. The
+startup warning serves as a persistent reminder to configure the flag.
+
+---
+
 ## Installation
 
 ### RedHat OpenShift Environment
 
-The [RedHat Operator Catalog](https://catalog.redhat.com/software/operators/search) provides a single place where Kubernetes administrators or developers can go to find existing operators that may provide the functionality that they require in an OpenShift environment. 
+The [RedHat Operator Catalog](https://catalog.redhat.com/software/operators/search) provides a single place where Kubernetes administrators or developers can go to find existing operators that may provide the functionality that they require in an OpenShift environment.
 
 The information provided by the [RedHat Operator Catalog](https://catalog.redhat.com/software/operators/search) allows the Operator Lifecycle Manager (OLM) to manage the operator throughout its complete lifecycle. This includes the initial installation and subscription to the RedHat Operator Catalog such that updates to the operator can be performed automatically.
 
@@ -104,16 +140,45 @@ To install the IBM Application Gateway operator from the RedHat Operator Catalog
 ![OpenShift Operator Info](docs/images/openshift-operator-product-info.png)
 4. On the 'Install Operator' page that opens, specify the cluster namespace in which to install the operator. Also click the `Automatic` radio button under Approval Strategy, to enable automatic updates of the running Operator instance without manual approval from the administrator. Click the `Install` button.
 ![OpenShift Operator Subscription](docs/images/openshift-operator-subscription.png)
-5. Ensure that the IBM Application Gateway operator has been installed correctly by the Operator Lifecycle Manager. 
+5. Ensure that the IBM Application Gateway operator has been installed correctly by the Operator Lifecycle Manager.
 ![OpenShift Operator Installed](docs/images/openshift-operator-installed.png)
+
+6. **Configure the outbound host allowlist.** Edit the operator Subscription to add
+   `--allowed-url-hosts` to the manager arguments. This is the OLM-native way to pass
+   flags to the manager and keeps the configuration in one place alongside the rest of
+   the Subscription. Replace the example values with the actual hostname(s) of your
+   OIDC provider and any web configuration sources:
+
+```shell
+kubectl edit subscription ibm-application-gateway-operator \
+  -n ibm-application-gateway-operator-system
+```
+
+   Add a `config.args` stanza to the Subscription spec:
+
+```yaml
+spec:
+  config:
+    args:
+      - --allowed-url-hosts=myidp.example.com,.config.internal.corp
+```
+
+   OLM will propagate the argument to the manager Deployment automatically. Verify
+   the warning is no longer present in the operator logs:
+
+```shell
+kubectl logs -n ibm-application-gateway-operator-system \
+  deployment/ibm-application-gateway-operator-controller-manager | grep -i "allowed-url-hosts"
+# Expected output: "Outbound URL host allowlist configured" hosts=[...]
+```
 
 At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator in the RedHat Operator Catalog. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
 
 
 ### Standard Kubernetes Environment
 
-In a standard (i.e. non-OpenShift) Kubernetes environment the operator can be installed and managed using the [Operator Lifecycle Manager](https://github.com/operator-framework/operator-lifecycle-manager) and [OperatorHub.io](https://operatorhub.io/). 
-OperatorHub.io provides a single place where Kubernetes administrators or developers can go to find existing operators that may provide the functionality that they require. 
+In a standard (i.e. non-OpenShift) Kubernetes environment the operator can be installed and managed using the [Operator Lifecycle Manager](https://github.com/operator-framework/operator-lifecycle-manager) and [OperatorHub.io](https://operatorhub.io/).
+OperatorHub.io provides a single place where Kubernetes administrators or developers can go to find existing operators that may provide the functionality that they require.
 
 The information provided by [OperatorHub.io](https://operatorhub.io/) allows the Operator Lifecycle Manager (OLM) to manage the operator throughout its complete lifecycle. This includes the initial installation and subscription to OperatorHub.io such that updates to the operator can be performed automatically.
 
@@ -131,8 +196,37 @@ To install the IBM Application Gateway operator from OperatorHub.io:
 kubectl get csv -n operators
 
 NAME                                        DISPLAY                            VERSION   REPLACES   PHASE
-ibm-application-gateway-operator.v26.6.0    IBM Application Gateway Operator   26.6.0               Succeeded
-``` 
+ibm-application-gateway-operator.v26.7.0    IBM Application Gateway Operator   26.7.0               Succeeded
+```
+
+4. **Configure the outbound host allowlist.** Edit the operator Subscription to add
+   `--allowed-url-hosts` to the manager arguments. This is the OLM-native way to pass
+   flags to the manager and keeps the configuration in one place alongside the rest of
+   the Subscription. Replace the example values with the actual hostname(s) of your
+   OIDC provider and any web configuration sources:
+
+```shell
+kubectl edit subscription ibm-application-gateway-operator \
+  -n operators
+```
+
+   Add a `config.args` stanza to the Subscription spec:
+
+```yaml
+spec:
+  config:
+    args:
+      - --allowed-url-hosts=myidp.example.com,.config.internal.corp
+```
+
+   OLM will propagate the argument to the manager Deployment automatically. Verify
+   the warning is no longer present in the operator logs:
+
+```shell
+kubectl logs -n operators \
+  deployment/ibm-application-gateway-operator-controller-manager | grep -i "allowed-url-hosts"
+# Expected output: "Outbound URL host allowlist configured" hosts=[...]
+```
 
 At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator on OperatorHub.io. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
 

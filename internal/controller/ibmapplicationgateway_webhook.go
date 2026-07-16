@@ -83,8 +83,9 @@ type patchOperation struct {
  */
 
 type IBMApplicationGatewayWebhook struct {
-	Client  client.Client
-	decoder *admission.Decoder
+	Client          client.Client
+	decoder         *admission.Decoder
+	AllowedURLHosts []string
 }
 
 /*
@@ -433,7 +434,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 		case "web":
 			// Handle web entry
 			master, err = handleWebEntryMerge(whsvr.Client, types.NamespacedName{Name: "dummy", Namespace: ns},
-				element.Url, element.Headers, master)
+				element.Url, element.Headers, master, whsvr.AllowedURLHosts)
 			if err != nil {
 				log.Error(err, "Error encountered attempting to merge a web config : "+element.Url)
 				return "", err
@@ -456,7 +457,7 @@ func mergeIAGConfig(whsvr *IBMApplicationGatewayWebhook, configElements []IAGCon
 		iagOidcReg.PostData = oidcReg.PostData
 
 		// Handle the registration and merge
-		master, err = handleOidcEntryMerge(whsvr.Client, iagOidcReg, ns, master)
+		master, err = handleOidcEntryMerge(whsvr.Client, iagOidcReg, ns, master, whsvr.AllowedURLHosts)
 		if err != nil {
 			log.Error(err, "Error encountered attempting to merge OIDC registration : "+oidcReg.Name)
 			return "", err

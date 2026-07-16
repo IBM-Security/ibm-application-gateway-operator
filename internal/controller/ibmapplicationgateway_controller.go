@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -89,7 +90,8 @@ type IBMApplicationGatewayReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	record.EventRecorder
-	Leader string
+	Leader          string
+	AllowedURLHosts []string
 }
 
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
@@ -390,7 +392,7 @@ func getMergedConfig(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMAppl
 				iagHeaders = append(iagHeaders, currHdr)
 			}
 
-			master, err = handleWebEntryMerge(r.Client, request.NamespacedName, webUrl, iagHeaders, master)
+			master, err = handleWebEntryMerge(r.Client, request.NamespacedName, webUrl, iagHeaders, master, r.AllowedURLHosts)
 			if err != nil {
 				reqLogger.Error(err, "Error encountered while attempting to merge the web config.")
 				return "", err
@@ -429,7 +431,7 @@ func getMergedConfig(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMAppl
 			oidcReg.PostData = postData
 
 			// Handle the registration and merge
-			master, err = handleOidcEntryMerge(r.Client, oidcReg, instance.Namespace, master)
+			master, err = handleOidcEntryMerge(r.Client, oidcReg, instance.Namespace, master, r.AllowedURLHosts)
 			if err != nil {
 				reqLogger.Error(err, "Error encountered while attempting to register a new OIDC client.")
 				return "", err
@@ -455,7 +457,7 @@ func getMergedConfig(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMAppl
  * Handle dynamic client registration and merge OIDC identity into the current master config.
  */
 func handleOidcEntryMerge(rclient client.Client, entry IAGOidcReg,
-	ns string, master map[string]interface{}) (map[string]interface{}, error) {
+	ns string, master map[string]interface{}, allowedHosts []string) (map[string]interface{}, error) {
 
 	logger := log.WithName("handleOidcEntryMerge")
 	logger.Info("Entry")
@@ -466,7 +468,7 @@ func handleOidcEntryMerge(rclient client.Client, entry IAGOidcReg,
 	}
 
 	// Register the client (if necessary)
-	err := handleOidcRegistration(&entry, rclient, ns)
+	err := handleOidcRegistration(&entry, rclient, ns, allowedHosts)
 	if err != nil {
 		logger.Error(err, "Failed to handle the OIDC registration.")
 		return master, err
@@ -534,19 +536,87 @@ func handleOidcEntryMerge(rclient client.Client, entry IAGOidcReg,
 }
 
 /*
+ * validateOutboundURL checks the scheme and, when an allowlist is configured,
+ * the hostname of a URL that the operator is about to fetch.
+ *
+ * Rules:
+ *   - Scheme must be "https".
+ *   - If allowedHosts is non-empty, the URL hostname must either exactly match
+ *     one entry or match a suffix entry (entries starting with ".").
+ *     Example: ["myidp.example.com", ".internal.corp"]
+ *       "myidp.example.com" — exact match only
+ *       ".internal.corp"    — matches any subdomain of internal.corp
+ */
+func validateOutboundURL(raw string, allowedHosts []string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("invalid URL %q: %w", raw, err)
+	}
+	if u.Scheme != "https" {
+		return fmt.Errorf("URL %q must use https, got scheme %q", raw, u.Scheme)
+	}
+	if len(allowedHosts) == 0 {
+		return nil
+	}
+	host := u.Hostname()
+	for _, allowed := range allowedHosts {
+		if strings.HasPrefix(allowed, ".") {
+			// suffix match: ".example.com" permits "foo.example.com"
+			if strings.HasSuffix(host, allowed) {
+				return nil
+			}
+		} else {
+			if host == allowed {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("URL host %q is not in the permitted hosts list", host)
+}
+
+/*
+ * safeCheckRedirect is used as http.Client.CheckRedirect to ensure that
+ * every redirect hop satisfies the same scheme and host-allowlist rules as
+ * the original request.  Go's default client follows up to 10 redirects
+ * transparently; without this guard a 302 from a valid https host could
+ * redirect to http://169.254.169.254/ or any other forbidden destination.
+ *
+ * allowedHosts is captured from the enclosing call-site so the same
+ * validateOutboundURL logic applies on every hop.
+ */
+func safeCheckRedirect(allowedHosts []string) func(req *http.Request, via []*http.Request) error {
+	return func(req *http.Request, via []*http.Request) error {
+		if err := validateOutboundURL(req.URL.String(), allowedHosts); err != nil {
+			return fmt.Errorf("redirect blocked: %w", err)
+		}
+		if len(via) >= 10 {
+			return fmt.Errorf("stopped after 10 redirects")
+		}
+		return nil
+	}
+}
+
+/*
  * Merge a web config source into the current master config.
  */
 func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
-	webUrl string, headers []IAGHeader, master map[string]interface{}) (map[string]interface{}, error) {
+	webUrl string, headers []IAGHeader, master map[string]interface{}, allowedHosts []string) (map[string]interface{}, error) {
 
 	if webUrl == "" {
 		return nil, fmt.Errorf("Configuration web entry is missing the Url.")
 	}
 
+	if err := validateOutboundURL(webUrl, allowedHosts); err != nil {
+		return nil, fmt.Errorf("web configuration URL rejected: %w", err)
+	}
+
 	log.V(1).Info("Retrieving config from " + webUrl)
 
 	// Get the yaml from the given url
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout:       time.Second * 20,
+		CheckRedirect: safeCheckRedirect(allowedHosts),
+	}
 
 	req, err := http.NewRequest("GET", webUrl, nil)
 
@@ -1155,34 +1225,66 @@ func getNewConfigMap(configMapName string, appName string, ns string, newData st
 /*
  * Function calls the discovery endpoint to retrieve the token and registration endpoints.
  */
-func getDiscoveryData(entry *IAGOidcReg, insecure bool) (DiscoveryData, error) {
+func getDiscoveryData(entry *IAGOidcReg, insecure bool, allowedHosts []string) (DiscoveryData, error) {
 
 	reqLogger := log.WithName("getDiscoveryData")
 	reqLogger.Info("Entry")
 
 	var retVal DiscoveryData
 
+	if err := validateOutboundURL(entry.DiscoveryEndpoint, allowedHosts); err != nil {
+		return retVal, fmt.Errorf("OIDC discovery endpoint rejected: %w", err)
+	}
+
 	// Get the registration URL
-	respData, err := doRequest(entry.DiscoveryEndpoint, "GET", []byte(""), insecure, "", "", "")
+	respData, err := doRequest(entry.DiscoveryEndpoint, "GET", []byte(""), insecure, "", "", "", allowedHosts)
 	if err != nil {
 		reqLogger.Error(err, "Failed to retrieve the OIDC endpoints.")
-	} else {
-		err = json.Unmarshal([]byte(respData), &retVal)
-		if err != nil {
-			reqLogger.Error(err, "Failed to unmarshal the discovery endpoints.")
+		return retVal, err
+	}
+
+	if err = json.Unmarshal([]byte(respData), &retVal); err != nil {
+		reqLogger.Error(err, "Failed to unmarshal the discovery endpoints.")
+		return retVal, err
+	}
+
+	// Pin the derived endpoints to the same host as the discovery URL.
+	// This prevents an attacker-controlled discovery document from redirecting
+	// token or registration calls to a different (attacker-controlled) host.
+	discoveryHost, err := hostOf(entry.DiscoveryEndpoint)
+	if err != nil {
+		return retVal, fmt.Errorf("could not parse discovery endpoint host: %w", err)
+	}
+	if retVal.Token_endpoint != "" {
+		if tokenHost, err := hostOf(retVal.Token_endpoint); err != nil || tokenHost != discoveryHost {
+			return retVal, fmt.Errorf("token_endpoint host %q does not match discovery host %q", tokenHost, discoveryHost)
+		}
+	}
+	if retVal.Registration_endpoint != "" {
+		if regHost, err := hostOf(retVal.Registration_endpoint); err != nil || regHost != discoveryHost {
+			return retVal, fmt.Errorf("registration_endpoint host %q does not match discovery host %q", regHost, discoveryHost)
 		}
 	}
 
 	reqLogger.Info("Exit")
 
-	return retVal, err
+	return retVal, nil
+}
+
+// hostOf parses a URL and returns its hostname (without port).
+func hostOf(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	return u.Hostname(), nil
 }
 
 /*
  * Function will attempt to retrieve an access token from the OIDC OP that can be used
  * to authorize the client registration.
  */
-func getAccessToken(endpoints *DiscoveryData, tokenRetrievalClientId string, tokenRetrievalClientSecret string, insecure bool, scopes string) (string, error) {
+func getAccessToken(endpoints *DiscoveryData, tokenRetrievalClientId string, tokenRetrievalClientSecret string, insecure bool, scopes string, allowedHosts []string) (string, error) {
 
 	reqLogger := log.WithName("getAccessToken")
 	reqLogger.Info("Entry")
@@ -1207,7 +1309,7 @@ func getAccessToken(endpoints *DiscoveryData, tokenRetrievalClientId string, tok
 	}
 
 	// Get the access token
-	respData, err := doRequest(endpoints.Token_endpoint, "POST", []byte(tokenReqData), insecure, "", "", "")
+	respData, err := doRequest(endpoints.Token_endpoint, "POST", []byte(tokenReqData), insecure, "", "", "", allowedHosts)
 	if err != nil {
 		reqLogger.Error(err, "Failed to retrieve the access token.")
 		return "", err
@@ -1260,7 +1362,7 @@ func getScopes(entry *IAGOidcReg) string {
 /*
  * Function will build the request data and make the HTTP call to register a new OIDC client.
  */
-func registerOidcClient(endpoints *DiscoveryData, entry *IAGOidcReg, baUser string, baPwd string, token string, insecure bool) (ClientDataStruct, error) {
+func registerOidcClient(endpoints *DiscoveryData, entry *IAGOidcReg, baUser string, baPwd string, token string, insecure bool, allowedHosts []string) (ClientDataStruct, error) {
 
 	reqLogger := log.WithName("registerOidcClient")
 	reqLogger.Info("Entry")
@@ -1297,7 +1399,7 @@ func registerOidcClient(endpoints *DiscoveryData, entry *IAGOidcReg, baUser stri
 	}
 
 	// Register the new client
-	respData, err2 := doRequest(endpoints.Registration_endpoint, "POST", body, insecure, baUser, baPwd, token)
+	respData, err2 := doRequest(endpoints.Registration_endpoint, "POST", body, insecure, baUser, baPwd, token, allowedHosts)
 	if err2 != nil {
 		reqLogger.Error(err2, "Failed to register the new client.")
 		return retVal, err2
@@ -1319,7 +1421,7 @@ func registerOidcClient(endpoints *DiscoveryData, entry *IAGOidcReg, baUser stri
  * The client is registered and the oidc identity configuration snippet is returned ready to
  * be merged into the master configuration.
  */
-func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string) error {
+func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string, allowedHosts []string) error {
 
 	reqLogger := log.WithName("handleOidcRegistration")
 	reqLogger.Info("Entry")
@@ -1353,7 +1455,7 @@ func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string)
 		}
 
 		// Retrieve the discovery data from the OIDC OP
-		endpoints, err2 := getDiscoveryData(entry, insecure)
+		endpoints, err2 := getDiscoveryData(entry, insecure, allowedHosts)
 		if err2 != nil {
 			reqLogger.Error(err2, "Failed to retrieve the discovery data.")
 			return err2
@@ -1374,7 +1476,7 @@ func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string)
 				tokenRetrievalClientSecret := string(secret.Data["tokenRetrievalClientSecret"])
 
 				// Get the access token
-				bearerToken, err = getAccessToken(&endpoints, tokenRetrievalClientId, tokenRetrievalClientSecret, insecure, getScopes(entry))
+				bearerToken, err = getAccessToken(&endpoints, tokenRetrievalClientId, tokenRetrievalClientSecret, insecure, getScopes(entry), allowedHosts)
 				if err != nil {
 					// Couldn't get it. This may be ok as this is not a required token for all OPs
 					reqLogger.Info("Failed to retrieve an access token from the OIDC OP.")
@@ -1384,7 +1486,7 @@ func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string)
 
 		// Register the new client
 		var clientData ClientDataStruct
-		clientData, err = registerOidcClient(&endpoints, entry, baUser, baPwd, bearerToken, insecure)
+		clientData, err = registerOidcClient(&endpoints, entry, baUser, baPwd, bearerToken, insecure, allowedHosts)
 		if err != nil {
 			reqLogger.Error(err, "Failed to register the new client.")
 			return err
@@ -1415,7 +1517,7 @@ func handleOidcRegistration(entry *IAGOidcReg, rclient client.Client, ns string)
 /*
  * Function makes an HTTP request and returns the resulting data as a string.
  */
-func doRequest(url string, method string, data []byte, insecure bool, baUser string, baPwd string, bearerToken string) (string, error) {
+func doRequest(url string, method string, data []byte, insecure bool, baUser string, baPwd string, bearerToken string, allowedHosts []string) (string, error) {
 
 	logger := log.WithName("doRequest")
 	logger.Info("Entry " + method + " : " + url)
@@ -1438,7 +1540,8 @@ func doRequest(url string, method string, data []byte, insecure bool, baUser str
 
 	// Create the client
 	client := &http.Client{
-		Timeout: time.Second * 20,
+		Timeout:       time.Second * 20,
+		CheckRedirect: safeCheckRedirect(allowedHosts),
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				RootCAs:            rootCAs,

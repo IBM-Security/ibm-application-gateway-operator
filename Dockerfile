@@ -1,7 +1,7 @@
 # Copyright contributors to the IBM Application Gateway Operator project
 
 # Build the manager binary
-FROM golang:1.22 AS builder
+FROM golang:1.25 AS builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests

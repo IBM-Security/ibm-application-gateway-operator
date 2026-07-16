@@ -294,7 +294,7 @@ func getConfigElements(annots map[string]string) ([]IAGConfigElement, error) {
 		currElem.Type = cfgAnnotations[name+".type"]
 		currElem.Order, err = strconv.Atoi(cfgAnnotations[name+".order"])
 		if err != nil {
-			return nil, fmt.Errorf("Configuration entry has an invalid order value : " + cfgAnnotations[name+".order"])
+			return nil, fmt.Errorf("Configuration entry has an invalid order value : %s", cfgAnnotations[name+".order"])
 		}
 
 		switch currElem.Type {
@@ -363,7 +363,7 @@ func getConfigElements(annots map[string]string) ([]IAGConfigElement, error) {
 				currHdr.Type = cfgAnnotations[hdrPrefix+".type"]
 
 				if currHdr.Type != "" && currHdr.Type != "secret" && currHdr.Type != "literal" {
-					return nil, fmt.Errorf("Configuration entry has an invalid header type : " + currHdr.Type)
+					return nil, fmt.Errorf("Configuration entry has an invalid header type : %s", currHdr.Type)
 				}
 
 				if currHdr.Type != "" {
@@ -379,7 +379,7 @@ func getConfigElements(annots map[string]string) ([]IAGConfigElement, error) {
 			currElem.Headers = headers
 
 		default:
-			return nil, fmt.Errorf("Configuration entry has an invalid type : " + currElem.Type)
+			return nil, fmt.Errorf("Configuration entry has an invalid type : %s", currElem.Type)
 		}
 
 		configElements = append(configElements, currElem)

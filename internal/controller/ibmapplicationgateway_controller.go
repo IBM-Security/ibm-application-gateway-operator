@@ -653,12 +653,12 @@ func handleWebEntryMerge(rclient client.Client, nsn types.NamespacedName,
 					log.V(1).Info("Adding secret header : " + header.Name)
 					req.Header.Add(header.Name, hdrValue)
 				} else {
-					return nil, fmt.Errorf("The authorization secret : " + header.Value + " does not have the required key : " + header.SecretKey)
+					return nil, fmt.Errorf("The authorization secret : %s does not have the required key : %s", header.Value, header.SecretKey)
 				}
 			}
 		default:
 			// Invalid
-			return nil, fmt.Errorf("Configuration web header entry has an invalid type : " + header.Type)
+			return nil, fmt.Errorf("Configuration web header entry has an invalid type : %s", header.Type)
 		}
 	}
 
@@ -1386,7 +1386,7 @@ func registerOidcClient(endpoints *DiscoveryData, entry *IAGOidcReg, baUser stri
 				dataMap[dataEntry.Name] = dataEntry.Values
 			} else {
 				// Invalid
-				return retVal, fmt.Errorf("The POST data entry is missing the required value(s) field : " + dataEntry.Name)
+				return retVal, fmt.Errorf("The POST data entry is missing the required value(s) field : %s", dataEntry.Name)
 			}
 		}
 	}

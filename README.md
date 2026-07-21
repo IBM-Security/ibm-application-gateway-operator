@@ -451,7 +451,7 @@ spec:
   replicas: 3
   deployment:
     serviceAccountName: ibm-application-gateway
-    image: icr.io/ibmappgateway/ibm-application-gateway:26.03
+    image: icr.io/ibmappgateway/ibm-application-gateway:26.06
     imagePullPolicy: IfNotPresent 
   configuration:
     - type: configmap
@@ -987,7 +987,7 @@ Deployment annotations define how the IBM Application Gateway sidecar container 
 Example:
 
 ```yaml
-ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.03
+ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.06
 ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
 ```
 
@@ -1201,7 +1201,7 @@ metadata:
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.name: Authorization
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.value: githubsecret
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.secretKey: value
-    ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.03
+    ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.06
     ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
     ibm-application-gateway.security.ibm.com/service.port: "30441"
 spec:

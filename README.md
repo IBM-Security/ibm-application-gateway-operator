@@ -6,6 +6,7 @@
     + [Custom Resource Model](#custom-resource-model)
   * [Security Configuration](#security-configuration)
     + [Restricting Outbound URL Hosts](#restricting-outbound-url-hosts)
+    + [Egress Network Policy](#egress-network-policy)
   * [Installation](#installation)
     + [RedHat OpenShift Environment](#redhat-openshift-environment)
       - [Procedure](#procedure)
@@ -118,6 +119,24 @@ The steps to configure the flag are included at the end of each installation pro
 The flag defaults to empty (all HTTPS hosts permitted). Upgrading from a previous version
 without setting the flag preserves existing behaviour — no existing CRs will break. The
 startup warning serves as a persistent reminder to configure the flag.
+
+### Egress Network Policy
+
+The operator automatically creates and maintains a `NetworkPolicy` that restricts egress
+from the operator pod to only what is required:
+
+| Destination | Port | Purpose |
+|---|---|---|
+| Any | UDP/TCP 53 | DNS resolution |
+| `kube-system` namespace | TCP 443 | Kubernetes API server |
+| `0.0.0.0/0` except `169.254.0.0/16` | TCP 443 | Web config and OIDC endpoints |
+
+The link-local range (`169.254.0.0/16`) is explicitly blocked to prevent access to cloud
+instance metadata services (AWS IMDSv1, IBM Cloud, Azure IMDS, GCP metadata).
+
+The policy is reconciled on every operator startup, so it is always present regardless of
+how the operator was installed (OLM, OperatorHub, or direct `kubectl apply`). No manual
+steps are required.
 
 ---
 

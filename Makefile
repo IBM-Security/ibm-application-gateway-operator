@@ -180,8 +180,9 @@ CSV_FILE = config/manifests/bases/ibm-application-gateway-operator.clusterservic
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	operator-sdk generate kustomize manifests -q 
-	sed -i '/      version: v1/ r $(CSV_FILE).annotations' $(CSV_FILE)
+	operator-sdk generate kustomize manifests -q
+	sed -i 's/displayName: IBMApplication Gateway/displayName: IBM Application Gateway/' $(CSV_FILE)
+	grep -q 'resources:' $(CSV_FILE) || sed -i '/      version: v1/ r $(CSV_FILE).annotations' $(CSV_FILE)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | sed "s|0000.0000.0000|$(SEMANTIC_VERSION)|g" | sed "s|--version--|$(VERSION)|g" | sed "s|--date--|`date`|g" | operator-sdk generate bundle -q --overwrite --version $(SEMANTIC_VERSION) $(BUNDLE_METADATA_OPTS)
 	echo "  com.redhat.openshift.versions: \"v4.6\"" >> bundle/metadata/annotations.yaml

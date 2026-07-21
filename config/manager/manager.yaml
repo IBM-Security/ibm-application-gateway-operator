@@ -35,6 +35,11 @@ spec:
         args:
         - --metrics-bind-address=:8443
         - --leader-elect
+        # Uncomment --allowed-url-hosts to restrict which hostnames the operator
+        # may contact for web configuration sources and OIDC endpoints.
+        # Exact hostnames and dot-prefixed suffix wildcards are supported.
+        # Example:
+        #- --allowed-url-hosts=myidp.example.com,.config.internal.corp
         image: controller:latest
         name: manager
         securityContext:

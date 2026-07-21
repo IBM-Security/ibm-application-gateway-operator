@@ -1,0 +1,23 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+
+# Namespaced Role: grants the operator permission to manage NetworkPolicy
+# objects only within its own namespace.  This is intentionally a Role
+# (not a ClusterRole) so the permission cannot be used outside the
+# operator's installation namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networkpolicy-role
+rules:
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

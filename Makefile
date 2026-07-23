@@ -98,6 +98,36 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
+# Namespace defaults — override on the command line if needed.
+NAMESPACE      ?= operators
+TEST_NAMESPACE ?= ivia-e2e
+# IAG container image injected into test CRs.  Override with a locally-loaded
+# image when running in CI without access to icr.io.
+IAG_IMAGE     ?= icr.io/ibmappgateway/ibm-application-gateway:latest
+IAG_ALT_IMAGE ?= icr.io/ibmappgateway/ibm-application-gateway:26.6.0
+
+# Optional test filter — e.g. make test-e2e RUN=TestSidecar
+RUN ?=
+
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests against the cluster in ~/.kube/config (operator must already be deployed).
+	go test ./test/e2e/... -v -timeout 20m $(if $(RUN),-run $(RUN)) \
+	  -args \
+	    -namespace=$(NAMESPACE) \
+	    -test-namespace=$(TEST_NAMESPACE) \
+	    -iag-image=$(IAG_IMAGE) \
+	    -iag-alt-image=$(IAG_ALT_IMAGE)
+
+.PHONY: test-e2e-olm
+test-e2e-olm: ## Install operator via OLM, run e2e tests, then clean up.
+	cd ../ibm-application-gateway-operator-tests && \
+	  BUNDLE_IMG=$(BUNDLE_IMG) NAMESPACE=$(NAMESPACE) TEST_NAMESPACE=$(TEST_NAMESPACE) \
+	  ./01-install.sh
+	$(MAKE) test-e2e
+	cd ../ibm-application-gateway-operator-tests && \
+	  NAMESPACE=$(NAMESPACE) TEST_NAMESPACE=$(TEST_NAMESPACE) \
+	  ./05-cleanup.sh
+
 ##@ Build
 
 build: generate fmt vet ## Build manager binary.

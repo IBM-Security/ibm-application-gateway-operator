@@ -122,8 +122,8 @@ startup warning serves as a persistent reminder to configure the flag.
 
 ### Egress Network Policy
 
-The operator automatically creates and maintains a `NetworkPolicy` that restricts egress
-from the operator pod to only what is required:
+A `NetworkPolicy` is provided that restricts egress from the operator pod to only what is
+required:
 
 | Destination | Port | Purpose |
 |---|---|---|
@@ -134,9 +134,9 @@ from the operator pod to only what is required:
 The link-local range (`169.254.0.0/16`) is explicitly blocked to prevent access to cloud
 instance metadata services (AWS IMDSv1, IBM Cloud, Azure IMDS, GCP metadata).
 
-The policy is reconciled on every operator startup, so it is always present regardless of
-how the operator was installed (OLM, OperatorHub, or direct `kubectl apply`). No manual
-steps are required.
+When installing with `kubectl` or kustomize the policy is applied automatically as part of
+the standard manifests. When installing via OLM or OperatorHub, the policy must be applied
+manually after installation — see the relevant procedure below.
 
 ---
 
@@ -189,6 +189,15 @@ spec:
 kubectl logs -n ibm-application-gateway-operator-system \
   deployment/ibm-application-gateway-operator-controller-manager | grep -i "allowed-url-hosts"
 # Expected output: "Outbound URL host allowlist configured" hosts=[...]
+```
+
+7. **Apply the egress NetworkPolicy.** OLM does not support NetworkPolicy objects in bundle
+   manifests, so the policy must be applied separately. Replace `<namespace>` with the
+   namespace the operator was installed into (e.g. `ibm-application-gateway-operator-system`):
+
+```shell
+kubectl apply -n <namespace> -f \
+  https://raw.githubusercontent.com/IBM-Security/ibm-application-gateway-operator/master/config/network-policy/operator-egress.yaml
 ```
 
 At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator in the RedHat Operator Catalog. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
@@ -245,6 +254,15 @@ spec:
 kubectl logs -n operators \
   deployment/ibm-application-gateway-operator-controller-manager | grep -i "allowed-url-hosts"
 # Expected output: "Outbound URL host allowlist configured" hosts=[...]
+```
+
+5. **Apply the egress NetworkPolicy.** OLM does not support NetworkPolicy objects in bundle
+   manifests, so the policy must be applied separately. Replace `<namespace>` with the
+   namespace the operator was installed into (e.g. `operators`):
+
+```shell
+kubectl apply -n <namespace> -f \
+  https://raw.githubusercontent.com/IBM-Security/ibm-application-gateway-operator/master/config/network-policy/operator-egress.yaml
 ```
 
 At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator on OperatorHub.io. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.

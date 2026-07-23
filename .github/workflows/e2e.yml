@@ -1,0 +1,190 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+#
+# e2e workflow — runs on every push and pull-request.
+#
+# Jobs
+# ────
+#  unit      Fast: go test ./internal/...  No cluster required.
+#  e2e       Behavioural: kind cluster + operator deploy + make test-e2e
+#            Excludes sidecar tests (separate job below).
+#  e2e-sidecar  Same setup + cert-manager; runs only the sidecar tests.
+#               The webhook requires a valid TLS cert, so cert-manager must
+#               be ready before the operator is deployed.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 1: unit + envtest (no cluster)
+  # ──────────────────────────────────────────────────────────────────────────
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run unit tests
+        run: make test
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 2: e2e (all tests except sidecar)
+  # ──────────────────────────────────────────────────────────────────────────
+  e2e:
+    name: E2e tests
+    runs-on: ubuntu-latest
+    needs: unit
+
+    env:
+      # Operator image loaded into kind — never pushed to a registry.
+      IMG: ibm-application-gateway-operator:ci
+      # Operator installation namespace (matches config/default/kustomization.yaml namePrefix).
+      OPERATOR_NS: ibm-application-gateway-operator-system
+      # Namespace where test CRs are created.
+      TEST_NS: iag-e2e
+      # IAG image used in test CRs.  Pods are never actually scheduled to run;
+      # the tests only assert on Kubernetes object state, so any string works.
+      # IAG_ALT_IMAGE must be a different string from IAG_IMAGE so that
+      # TestImageChangeRollingUpdate can observe the controller detecting a change.
+      IAG_IMAGE: fake.invalid/ibm-application-gateway:v1
+      IAG_ALT_IMAGE: fake.invalid/ibm-application-gateway:v2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # ── Cluster ──────────────────────────────────────────────────────────
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: iag-e2e
+
+      # ── cert-manager ─────────────────────────────────────────────────────
+      # Required by config/certmanager/ (the webhook serving cert).
+      - name: Install cert-manager
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+          kubectl rollout status deployment/cert-manager         -n cert-manager --timeout=120s
+          kubectl rollout status deployment/cert-manager-webhook -n cert-manager --timeout=120s
+
+      # ── Operator image ───────────────────────────────────────────────────
+      # Generate zz_generated.deepcopy.go before docker build — the file is
+      # not tracked in git (removed in 0633b5a) so the Dockerfile build context
+      # would otherwise be missing DeepCopyObject and fail to compile.
+      - name: Generate code
+        run: make generate
+
+      - name: Build operator image
+        run: docker build -t ${{ env.IMG }} .
+
+      - name: Load operator image into kind
+        run: kind load docker-image ${{ env.IMG }} --name iag-e2e
+
+      # ── Deploy operator ───────────────────────────────────────────────────
+      - name: Deploy operator
+        run: make deploy IMG=${{ env.IMG }}
+
+      - name: Wait for operator to be ready
+        run: |
+          kubectl rollout status deployment/ibm-application-gateway-operator-controller-manager \
+            -n ${{ env.OPERATOR_NS }} --timeout=120s
+
+      # ── NetworkPolicy (OLM gap — apply manually as documented in README) ─
+      - name: Apply egress NetworkPolicy
+        run: |
+          kubectl apply -n ${{ env.OPERATOR_NS }} \
+            -f config/network-policy/operator-egress.yaml
+
+      # ── Run e2e tests (skip sidecar — separate job below) ─────────────────
+      - name: Run e2e tests
+        run: |
+          make test-e2e \
+            NAMESPACE=${{ env.OPERATOR_NS }} \
+            TEST_NAMESPACE=${{ env.TEST_NS }} \
+            IAG_IMAGE=${{ env.IAG_IMAGE }} \
+            IAG_ALT_IMAGE=${{ env.IAG_ALT_IMAGE }} \
+            "RUN=^Test[^S]|^TestS[^i]|^TestSi[^d]"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 3: sidecar tests
+  # Identical setup to e2e but uses -run=TestSidecar.
+  # Kept separate so a sidecar failure doesn't block the rest of the suite.
+  # ──────────────────────────────────────────────────────────────────────────
+  e2e-sidecar:
+    name: E2e sidecar tests
+    runs-on: ubuntu-latest
+    needs: unit
+
+    env:
+      IMG: ibm-application-gateway-operator:ci
+      OPERATOR_NS: ibm-application-gateway-operator-system
+      TEST_NS: iag-e2e-sidecar
+      IAG_IMAGE: fake.invalid/ibm-application-gateway:ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: iag-sidecar
+
+      - name: Install cert-manager
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+          kubectl rollout status deployment/cert-manager         -n cert-manager --timeout=120s
+          kubectl rollout status deployment/cert-manager-webhook -n cert-manager --timeout=120s
+
+      - name: Generate code
+        run: make generate
+
+      - name: Build operator image
+        run: docker build -t ${{ env.IMG }} .
+
+      - name: Load operator image into kind
+        run: kind load docker-image ${{ env.IMG }} --name iag-sidecar
+
+      - name: Deploy operator
+        run: make deploy IMG=${{ env.IMG }}
+
+      - name: Wait for operator to be ready
+        run: |
+          kubectl rollout status deployment/ibm-application-gateway-operator-controller-manager \
+            -n ${{ env.OPERATOR_NS }} --timeout=120s
+
+      - name: Apply egress NetworkPolicy
+        run: |
+          kubectl apply -n ${{ env.OPERATOR_NS }} \
+            -f config/network-policy/operator-egress.yaml
+
+      - name: Run sidecar e2e tests
+        run: |
+          make test-e2e \
+            NAMESPACE=${{ env.OPERATOR_NS }} \
+            TEST_NAMESPACE=${{ env.TEST_NS }} \
+            IAG_IMAGE=${{ env.IAG_IMAGE }} \
+            IAG_ALT_IMAGE=${{ env.IAG_ALT_IMAGE }} \
+            RUN=TestSidecar

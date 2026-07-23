@@ -96,7 +96,37 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test $(shell go list ./... | grep -v /test/e2e) -coverprofile cover.out
+
+# Namespace defaults — override on the command line if needed.
+NAMESPACE      ?= operators
+TEST_NAMESPACE ?= ivia-e2e
+# IAG container image injected into test CRs.  Override with a locally-loaded
+# image when running in CI without access to icr.io.
+IAG_IMAGE     ?= icr.io/ibmappgateway/ibm-application-gateway:latest
+IAG_ALT_IMAGE ?= icr.io/ibmappgateway/ibm-application-gateway:26.6.0
+
+# Optional test filter — e.g. make test-e2e RUN=TestSidecar
+RUN ?=
+
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests against the cluster in ~/.kube/config (operator must already be deployed).
+	go test ./test/e2e/... -v -timeout 20m $(if $(RUN),-run '$(RUN)') \
+	  -args \
+	    -namespace=$(NAMESPACE) \
+	    -test-namespace=$(TEST_NAMESPACE) \
+	    -iag-image=$(IAG_IMAGE) \
+	    -iag-alt-image=$(IAG_ALT_IMAGE)
+
+.PHONY: test-e2e-olm
+test-e2e-olm: ## Install operator via OLM, run e2e tests, then clean up.
+	cd ../ibm-application-gateway-operator-tests && \
+	  BUNDLE_IMG=$(BUNDLE_IMG) NAMESPACE=$(NAMESPACE) TEST_NAMESPACE=$(TEST_NAMESPACE) \
+	  ./01-install.sh
+	$(MAKE) test-e2e
+	cd ../ibm-application-gateway-operator-tests && \
+	  NAMESPACE=$(NAMESPACE) TEST_NAMESPACE=$(TEST_NAMESPACE) \
+	  ./05-cleanup.sh
 
 ##@ Build
 
@@ -180,8 +210,9 @@ CSV_FILE = config/manifests/bases/ibm-application-gateway-operator.clusterservic
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	operator-sdk generate kustomize manifests -q 
-	sed -i '/      version: v1/ r $(CSV_FILE).annotations' $(CSV_FILE)
+	operator-sdk generate kustomize manifests -q
+	sed -i 's/displayName: IBMApplication Gateway/displayName: IBM Application Gateway/' $(CSV_FILE)
+	grep -q 'resources:' $(CSV_FILE) || sed -i '/      version: v1/ r $(CSV_FILE).annotations' $(CSV_FILE)
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | sed "s|0000.0000.0000|$(SEMANTIC_VERSION)|g" | sed "s|--version--|$(VERSION)|g" | sed "s|--date--|`date`|g" | operator-sdk generate bundle -q --overwrite --version $(SEMANTIC_VERSION) $(BUNDLE_METADATA_OPTS)
 	echo "  com.redhat.openshift.versions: \"v4.6\"" >> bundle/metadata/annotations.yaml

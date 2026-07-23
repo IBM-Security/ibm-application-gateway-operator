@@ -111,7 +111,7 @@ RUN ?=
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests against the cluster in ~/.kube/config (operator must already be deployed).
-	go test ./test/e2e/... -v -timeout 20m $(if $(RUN),-run $(RUN)) \
+	go test ./test/e2e/... -v -timeout 20m $(if $(RUN),-run '$(RUN)') \
 	  -args \
 	    -namespace=$(NAMESPACE) \
 	    -test-namespace=$(TEST_NAMESPACE) \

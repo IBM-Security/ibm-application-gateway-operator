@@ -31,10 +31,11 @@ func newSidecarDeployment(name, namespace, sourceCMName string, nodePort int) *a
 	labels := map[string]string{"app": name}
 	replicas := int32(1)
 	annots := map[string]string{
-		"ibm-application-gateway.security.ibm.com/deployment.image":        iagImage,
-		"ibm-application-gateway.security.ibm.com/configuration.0.type":    "configmap",
-		"ibm-application-gateway.security.ibm.com/configuration.0.name":    sourceCMName,
-		"ibm-application-gateway.security.ibm.com/configuration.0.dataKey": "config.yaml",
+		"ibm-application-gateway.security.ibm.com/deployment.image":         iagImage,
+		"ibm-application-gateway.security.ibm.com/configuration.0.type":     "configmap",
+		"ibm-application-gateway.security.ibm.com/configuration.0.name":     sourceCMName,
+		"ibm-application-gateway.security.ibm.com/configuration.0.dataKey":  "config.yaml",
+		"ibm-application-gateway.security.ibm.com/configuration.0.order":    "1",
 	}
 	if nodePort > 0 {
 		annots["ibm-application-gateway.security.ibm.com/service.port"] = strconv.Itoa(nodePort)

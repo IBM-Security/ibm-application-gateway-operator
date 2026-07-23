@@ -56,7 +56,10 @@ jobs:
       TEST_NS: iag-e2e
       # IAG image used in test CRs.  Pods are never actually scheduled to run;
       # the tests only assert on Kubernetes object state, so any string works.
-      IAG_IMAGE: fake.invalid/ibm-application-gateway:ci
+      # IAG_ALT_IMAGE must be a different string from IAG_IMAGE so that
+      # TestImageChangeRollingUpdate can observe the controller detecting a change.
+      IAG_IMAGE: fake.invalid/ibm-application-gateway:v1
+      IAG_ALT_IMAGE: fake.invalid/ibm-application-gateway:v2
 
     steps:
       - uses: actions/checkout@v4
@@ -116,7 +119,7 @@ jobs:
             NAMESPACE=${{ env.OPERATOR_NS }} \
             TEST_NAMESPACE=${{ env.TEST_NS }} \
             IAG_IMAGE=${{ env.IAG_IMAGE }} \
-            IAG_ALT_IMAGE=${{ env.IAG_IMAGE }} \
+            IAG_ALT_IMAGE=${{ env.IAG_ALT_IMAGE }} \
             "RUN=^Test[^S]|^TestS[^i]|^TestSi[^d]"
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -183,5 +186,5 @@ jobs:
             NAMESPACE=${{ env.OPERATOR_NS }} \
             TEST_NAMESPACE=${{ env.TEST_NS }} \
             IAG_IMAGE=${{ env.IAG_IMAGE }} \
-            IAG_ALT_IMAGE=${{ env.IAG_IMAGE }} \
+            IAG_ALT_IMAGE=${{ env.IAG_ALT_IMAGE }} \
             RUN=TestSidecar

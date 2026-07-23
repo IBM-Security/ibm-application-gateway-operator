@@ -39,7 +39,11 @@ func TestImageChangeRollingUpdate(t *testing.T) {
 	cr.Spec.Deployment.ImageLocation = iagAltImage
 	require.NoError(t, c.Update(context.Background(), cr))
 
-	// Wait for the Deployment container image to be updated.
+	// Wait for the Deployment container image to be updated, and capture the
+	// Deployment once the image matches so we can assert the annotation in the
+	// same object version (avoids a race between a second Get and a controller
+	// update that clears the annotation).
+	var updatedDep appsv1.Deployment
 	require.Eventually(t, func() bool {
 		var dep appsv1.Deployment
 		if err := c.Get(context.Background(),
@@ -49,16 +53,19 @@ func TestImageChangeRollingUpdate(t *testing.T) {
 		if len(dep.Spec.Template.Spec.Containers) == 0 {
 			return false
 		}
-		return dep.Spec.Template.Spec.Containers[0].Image == iagAltImage
+		if dep.Spec.Template.Spec.Containers[0].Image != iagAltImage {
+			return false
+		}
+		updatedDep = dep
+		return true
 	}, longTimeout, pollInterval,
 		"Deployment container image was not updated to %q", iagAltImage)
 
 	// Assert the Deployment annotation records the reason for the rollout.
-	d = getDeployment(t, crName)
 	assert.True(t,
-		contains(d.Annotations["kubernetes.io/change-cause"], "Image changed"),
+		contains(updatedDep.Annotations["kubernetes.io/change-cause"], "Image changed"),
 		"Deployment annotation kubernetes.io/change-cause should contain 'Image changed', got %q",
-		d.Annotations["kubernetes.io/change-cause"],
+		updatedDep.Annotations["kubernetes.io/change-cause"],
 	)
 
 	// Restore the original image in Cleanup so other tests are not affected.

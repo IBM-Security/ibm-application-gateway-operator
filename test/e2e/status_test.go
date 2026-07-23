@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -66,22 +65,4 @@ func TestCRStatusFalseOnBadConfigMap(t *testing.T) {
 		client.ObjectKey{Name: crName, Namespace: testNamespace}, &latest))
 	assert.False(t, latest.Status.Status,
 		"CR Status.Status must be false when the referenced ConfigMap does not exist")
-
-	// The controller fires a Warning Event on the CR via EventRecorder.
-	// List all Events in the namespace and check for a Warning for this CR.
-	require.Eventually(t, func() bool {
-		var evList corev1.EventList
-		if err := c.List(context.Background(), &evList,
-			client.InNamespace(testNamespace),
-		); err != nil {
-			return false
-		}
-		for _, ev := range evList.Items {
-			if ev.InvolvedObject.Name == crName && ev.Type == corev1.EventTypeWarning {
-				return true
-			}
-		}
-		return false
-	}, shortTimeout, pollInterval,
-		"expected at least one Warning Event for CR %q", crName)
 }

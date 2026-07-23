@@ -1,0 +1,65 @@
+# Copyright contributors to the IBM Application Gateway Operator project
+#
+# NetworkPolicy: restrict egress from the operator (controller-manager) pod.
+#
+# The operator needs outbound access to:
+#   1. kube-apiserver  — HTTPS on port 443 (all cluster config reads/writes)
+#   2. Configured web / OIDC endpoints — HTTPS on port 443 (configuration fetch)
+#   3. DNS             — UDP/TCP 53 to kube-dns so hostnames can be resolved
+#
+# Everything else is denied, including:
+#   - HTTP (port 80) to prevent plain-text credential or config exfiltration
+#   - Link-local addresses (169.254.0.0/16) — cloud metadata services (IMDSv1)
+#
+# NOTE: The kube-apiserver is permitted via the namespaceSelector that selects
+# kube-system, where the API server endpoint lives in most managed Kubernetes
+# distributions (IKS, OCP, EKS, GKE).  On bare-metal clusters where the
+# apiserver is not a pod, add an ipBlock entry with your control-plane CIDR.
+#
+# NOTE: This manifest is applied by kustomize/kubectl only.  OLM does not
+# support NetworkPolicy objects in bundle manifests (unsupported media type);
+# OLM users should apply this file manually after installation:
+#
+#   kubectl apply -f config/network-policy/operator-egress.yaml -n <operator-namespace>
+#
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: controller-manager-egress
+  namespace: system
+spec:
+  podSelector:
+    matchLabels:
+      control-plane: controller-manager
+  policyTypes:
+  - Egress
+  egress:
+
+  # 1. Allow DNS resolution (kube-dns)
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+
+  # 2. Allow HTTPS to the Kubernetes API server.
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - port: 443
+      protocol: TCP
+
+  # 3. Allow HTTPS to any external host EXCEPT link-local (cloud metadata).
+  #    The "except" clause blocks:
+  #      169.254.0.0/16  — link-local (AWS/IBM IMDSv1, Azure IMDS, GCP metadata)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 169.254.0.0/16
+    ports:
+    - port: 443
+      protocol: TCP

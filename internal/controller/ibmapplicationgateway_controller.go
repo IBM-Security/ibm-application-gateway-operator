@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,7 +31,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -1622,104 +1620,8 @@ func manageError(r *IBMApplicationGatewayReconciler, instance *ibmv1.IBMApplicat
 	return ctrl.Result{}, nil
 }
 
-// operatorNamespace returns the namespace the operator pod is running in by
-// reading the standard in-cluster service account namespace file.
-func operatorNamespace() (string, error) {
-	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		return "", fmt.Errorf("unable to determine operator namespace: %w", err)
-	}
-	return strings.TrimSpace(string(data)), nil
-}
-
-// reconcileNetworkPolicy ensures the egress NetworkPolicy for the operator pod
-// exists and is up to date.  It is called once at manager start.
-func (r *IBMApplicationGatewayReconciler) reconcileNetworkPolicy(ctx context.Context) error {
-	ns, err := operatorNamespace()
-	if err != nil {
-		return err
-	}
-
-	proto := corev1.ProtocolTCP
-	protoUDP := corev1.ProtocolUDP
-	port443 := intstr.FromInt(443)
-	port53 := intstr.FromInt(53)
-
-	desired := &networkingv1.NetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ibm-application-gateway-operator-controller-manager-egress",
-			Namespace: ns,
-		},
-	}
-
-	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, desired, func() error {
-		desired.Spec = networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"control-plane": "controller-manager",
-				},
-			},
-			PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
-			Egress: []networkingv1.NetworkPolicyEgressRule{
-				// Allow DNS
-				{
-					Ports: []networkingv1.NetworkPolicyPort{
-						{Protocol: &protoUDP, Port: &port53},
-						{Protocol: &proto, Port: &port53},
-					},
-				},
-				// Allow HTTPS to kube-system (API server)
-				{
-					To: []networkingv1.NetworkPolicyPeer{{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								"kubernetes.io/metadata.name": "kube-system",
-							},
-						},
-					}},
-					Ports: []networkingv1.NetworkPolicyPort{
-						{Protocol: &proto, Port: &port443},
-					},
-				},
-				// Allow HTTPS to any external host except link-local
-				{
-					To: []networkingv1.NetworkPolicyPeer{{
-						IPBlock: &networkingv1.IPBlock{
-							CIDR:   "0.0.0.0/0",
-							Except: []string{"169.254.0.0/16"},
-						},
-					}},
-					Ports: []networkingv1.NetworkPolicyPort{
-						{Protocol: &proto, Port: &port443},
-					},
-				},
-			},
-		}
-		return nil
-	})
-	return err
-}
-
-// networkPolicyRunnable is a one-shot Runnable that reconciles the operator
-// egress NetworkPolicy after the manager has acquired the leader lease.
-type networkPolicyRunnable struct {
-	reconciler *IBMApplicationGatewayReconciler
-}
-
-func (n networkPolicyRunnable) Start(ctx context.Context) error {
-	if err := n.reconciler.reconcileNetworkPolicy(ctx); err != nil {
-		log.Error(err, "Failed to reconcile operator egress NetworkPolicy")
-	}
-	return nil
-}
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *IBMApplicationGatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Reconcile the egress NetworkPolicy once at startup.
-	if err := mgr.Add(networkPolicyRunnable{reconciler: r}); err != nil {
-		return err
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ibmv1.IBMApplicationGateway{}).
 		Watches(&corev1.ConfigMap{}, &handler.EnqueueRequestForObject{}).

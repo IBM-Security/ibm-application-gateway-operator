@@ -82,6 +82,12 @@ jobs:
           kubectl rollout status deployment/cert-manager-webhook -n cert-manager --timeout=120s
 
       # ── Operator image ───────────────────────────────────────────────────
+      # Generate zz_generated.deepcopy.go before docker build — the file is
+      # not tracked in git (removed in 0633b5a) so the Dockerfile build context
+      # would otherwise be missing DeepCopyObject and fail to compile.
+      - name: Generate code
+        run: make generate
+
       - name: Build operator image
         run: docker build -t ${{ env.IMG }} .
 
@@ -148,6 +154,9 @@ jobs:
           kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
           kubectl rollout status deployment/cert-manager         -n cert-manager --timeout=120s
           kubectl rollout status deployment/cert-manager-webhook -n cert-manager --timeout=120s
+
+      - name: Generate code
+        run: make generate
 
       - name: Build operator image
         run: docker build -t ${{ env.IMG }} .

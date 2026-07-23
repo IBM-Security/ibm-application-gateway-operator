@@ -26,15 +26,14 @@ const (
 )
 
 // ensureNamespace creates the test namespace if it does not already exist.
-// A Cleanup is registered to delete the namespace when the test ends.
+// The namespace is intentionally not deleted in Cleanup — tests share it for
+// the lifetime of the suite run, and deleting it mid-run causes "namespace
+// being terminated" failures in concurrently executing tests.
 func ensureNamespace(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}
 	_ = c.Create(ctx, ns) // ignore AlreadyExists
-	t.Cleanup(func() {
-		_ = c.Delete(context.Background(), ns)
-	})
 }
 
 // ensureServiceAccount creates the "iag" ServiceAccount used by test CRs.

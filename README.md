@@ -6,6 +6,7 @@
     + [Custom Resource Model](#custom-resource-model)
   * [Security Configuration](#security-configuration)
     + [Restricting Outbound URL Hosts](#restricting-outbound-url-hosts)
+    + [Egress Network Policy](#egress-network-policy)
   * [Installation](#installation)
     + [RedHat OpenShift Environment](#redhat-openshift-environment)
       - [Procedure](#procedure)
@@ -119,6 +120,24 @@ The flag defaults to empty (all HTTPS hosts permitted). Upgrading from a previou
 without setting the flag preserves existing behaviour — no existing CRs will break. The
 startup warning serves as a persistent reminder to configure the flag.
 
+### Egress Network Policy
+
+A `NetworkPolicy` is provided that restricts egress from the operator pod to only what is
+required:
+
+| Destination | Port | Purpose |
+|---|---|---|
+| Any | UDP/TCP 53 | DNS resolution |
+| `kube-system` namespace | TCP 443 | Kubernetes API server |
+| `0.0.0.0/0` except `169.254.0.0/16` | TCP 443 | Web config and OIDC endpoints |
+
+The link-local range (`169.254.0.0/16`) is explicitly blocked to prevent access to cloud
+instance metadata services (AWS IMDSv1, IBM Cloud, Azure IMDS, GCP metadata).
+
+When installing with `kubectl` or kustomize the policy is applied automatically as part of
+the standard manifests. When installing via OLM or OperatorHub, the policy must be applied
+manually after installation — see the relevant procedure below.
+
 ---
 
 ## Installation
@@ -170,6 +189,15 @@ spec:
 kubectl logs -n ibm-application-gateway-operator-system \
   deployment/ibm-application-gateway-operator-controller-manager | grep -i "allowed-url-hosts"
 # Expected output: "Outbound URL host allowlist configured" hosts=[...]
+```
+
+7. **Apply the egress NetworkPolicy.** OLM does not support NetworkPolicy objects in bundle
+   manifests, so the policy must be applied separately. Replace `<namespace>` with the
+   namespace the operator was installed into (e.g. `ibm-application-gateway-operator-system`):
+
+```shell
+kubectl apply -n <namespace> -f \
+  https://raw.githubusercontent.com/IBM-Security/ibm-application-gateway-operator/master/config/network-policy/operator-egress.yaml
 ```
 
 At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator in the RedHat Operator Catalog. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
@@ -226,6 +254,15 @@ spec:
 kubectl logs -n operators \
   deployment/ibm-application-gateway-operator-controller-manager | grep -i "allowed-url-hosts"
 # Expected output: "Outbound URL host allowlist configured" hosts=[...]
+```
+
+5. **Apply the egress NetworkPolicy.** OLM does not support NetworkPolicy objects in bundle
+   manifests, so the policy must be applied separately. Replace `<namespace>` with the
+   namespace the operator was installed into (e.g. `operators`):
+
+```shell
+kubectl apply -n <namespace> -f \
+  https://raw.githubusercontent.com/IBM-Security/ibm-application-gateway-operator/master/config/network-policy/operator-egress.yaml
 ```
 
 At this point the Operator Lifecycle Manager has been installed into the Kubernetes cluster, the IBM Application Gateway operator has been deployed and a subscription has been created that will monitor for any updates to the operator on OperatorHub.io. The IBM Application Gateway operator is now operational and any subsequent resources which are created of the kind `IBMApplicationGateway`, or deployments with the required sidecar annotations, will result in the operator being invoked to manage the deployment.
@@ -451,7 +488,7 @@ spec:
   replicas: 3
   deployment:
     serviceAccountName: ibm-application-gateway
-    image: icr.io/ibmappgateway/ibm-application-gateway:26.03
+    image: icr.io/ibmappgateway/ibm-application-gateway:26.06
     imagePullPolicy: IfNotPresent 
   configuration:
     - type: configmap
@@ -987,7 +1024,7 @@ Deployment annotations define how the IBM Application Gateway sidecar container 
 Example:
 
 ```yaml
-ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.03
+ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.06
 ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
 ```
 
@@ -1201,7 +1238,7 @@ metadata:
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.name: Authorization
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.value: githubsecret
     ibm-application-gateway.security.ibm.com/configuration.sample.header.authz.secretKey: value
-    ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.03
+    ibm-application-gateway.security.ibm.com/deployment.image: icr.io/ibmappgateway/ibm-application-gateway:26.06
     ibm-application-gateway.security.ibm.com/deployment.imagePullPolicy: IfNotPresent
     ibm-application-gateway.security.ibm.com/service.port: "30441"
 spec:

@@ -15,12 +15,18 @@
 # kube-system, where the API server endpoint lives in most managed Kubernetes
 # distributions (IKS, OCP, EKS, GKE).  On bare-metal clusters where the
 # apiserver is not a pod, add an ipBlock entry with your control-plane CIDR.
+#
+# NOTE: This manifest is applied by kustomize/kubectl only.  OLM does not
+# support NetworkPolicy objects in bundle manifests (unsupported media type);
+# OLM users should apply this file manually after installation:
+#
+#   kubectl apply -f config/network-policy/operator-egress.yaml -n <operator-namespace>
+#
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: controller-manager-egress
-  namespace: system
 spec:
   podSelector:
     matchLabels:

@@ -9,7 +9,7 @@ spec:
   deployment:
     serviceAccountName: iag
     lang: C
-    image: icr.io/ibmappgateway/ibm-application-gateway:26.03
+    image: icr.io/ibmappgateway/ibm-application-gateway:26.06
     imagePullPolicy: Always
     imagePullSecrets: 
       - name: regcred
